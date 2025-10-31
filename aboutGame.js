@@ -8,7 +8,7 @@ const AboutGame = () => {
         <ImageBackground resizeMode="cover" source={require("./assets/bgImage.jpg")} style={{ flex: 1 }}>
             <ScrollView>
                 <View>
-                    <Text style={styles.title}>About Game</Text>
+                    <Text style={[styles.title, styles.lighterText, styles.topMargin]}>About Game</Text>
                 </View>
             </ScrollView>
         </ImageBackground>

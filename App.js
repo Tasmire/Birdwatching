@@ -17,26 +17,26 @@ const App = () => {
           initialRouteName="Game"
           screenOptions={{
             headerShown: false,
-            tabBarActiveTintColor: "#1976d2",
-            tabBarInactiveTintColor: "#888",
-            tabBarStyle: { backgroundColor: "#e3f2fd" },
+            tabBarActiveTintColor: "#356227",
+            tabBarInactiveTintColor: "#96A990",
+            tabBarStyle: { backgroundColor: "#0c1908ff" },
           }}
         >
           <Tab.Screen name="Logbook" component={Logbook} options={{
             tabBarLabel: "Logbook",
-            tabBarIcon: ({ color, size }) => (<MaterialIcons name="list-alt" color={"#b1c5db"} size={20} />)
+            tabBarIcon: ({ color, size }) => (<MaterialIcons name="book" color={"#96A990"} size={20} />)
           }} />
           <Tab.Screen name="Game" component={MainGame} options={{
             tabBarLabel: "Main Game",
-            tabBarIcon: ({ color, size }) => (<MaterialIcons name="videogame-asset" color={"#b1c5db"} size={20} />)
+            tabBarIcon: ({ color, size }) => (<MaterialIcons name="videogame-asset" color={"#96A990"} size={20} />)
           }} />
           <Tab.Screen name="Profile" component={UserProfile} options={{
             tabBarLabel: "User Profile",
-            tabBarIcon: ({ color, size }) => (<MaterialIcons name="person" color={"#b1c5db"} size={20} />)
+            tabBarIcon: ({ color, size }) => (<MaterialIcons name="person" color={"#96A990"} size={20} />)
           }} />
           <Tab.Screen name="About" component={AboutGame} options={{
             tabBarLabel: "About Game",
-            tabBarIcon: ({ color, size }) => (<MaterialIcons name="info" color={"#b1c5db"} size={20} />)
+            tabBarIcon: ({ color, size }) => (<MaterialIcons name="info" color={"#96A990"} size={20} />)
           }} />
         </Tab.Navigator>
       </NavigationContainer>

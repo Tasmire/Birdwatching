@@ -8,7 +8,7 @@ const UserProfile = () => {
         <ImageBackground resizeMode="cover" source={require("./assets/bgImage.jpg")} style={{ flex: 1 }}>
             <ScrollView>
                 <View>
-                    <Text style={styles.title}>User Profile</Text>
+                    <Text style={[styles.title, styles.lighterText, styles.topMargin]}>User Profile</Text>
                 </View>
             </ScrollView>
         </ImageBackground>

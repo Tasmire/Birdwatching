@@ -5,10 +5,10 @@ import { styles } from "./styles/gameStyles";
 
 const Logbook = () => {
     return (
-        <ImageBackground resizeMode="cover" source={require("./assets/bgImage.jpg")} style={{ flex: 1 }}>
+        <ImageBackground resizeMode="cover" source={require("./assets/bgLogbook.jpg")} style={{ flex: 1 }}>
             <ScrollView>
                 <View>
-                    <Text style={styles.title}>Logbook</Text>
+                    <Text style={[styles.title, styles.darkText, styles.topMargin]}>Logbook</Text>
                 </View>
             </ScrollView>
         </ImageBackground>

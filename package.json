@@ -9,6 +9,7 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/masked-view": "^0.1.11",
     "@react-native-vector-icons/material-icons": "^12.3.0",
     "@react-navigation/bottom-tabs": "^7.6.0",
@@ -27,6 +28,5 @@
   "devDependencies": {
     "@react-native-community/cli": "latest"
   },
-
   "private": true
 }

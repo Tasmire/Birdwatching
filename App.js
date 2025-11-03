@@ -2,6 +2,7 @@ import Logbook from "./logbook";
 import MainGame from "./mainGame";
 import UserProfile from "./userProfile";
 import AboutGame from "./aboutGame";
+import LoginScreen from "./components/LoginScreen";
 import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { UserProvider } from "./operations/UserContext";
@@ -10,6 +11,18 @@ import MaterialIcons from '@react-native-vector-icons/material-icons';
 
 const Tab = createBottomTabNavigator();
 const App = () => {
+
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const checkLoginStatus = async () => {
+      const userData = await AsyncStorage.getItem("userData");
+      setIsLoggedIn(!!userData); // If userData exists, user is logged in
+    };
+
+    checkLoginStatus();
+  }, []);
+
   return (
     <UserProvider>
       <NavigationContainer>

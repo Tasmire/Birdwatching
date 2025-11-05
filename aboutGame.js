@@ -6,7 +6,7 @@ import { styles } from "./styles/gameStyles";
 const AboutGame = () => {
     return (
         <ImageBackground resizeMode="cover" source={require("./assets/bgImage.jpg")} style={{ flex: 1 }}>
-            <ScrollView>
+            <ScrollView style={styles.backgroundDark}>
                 <View>
                     <Text style={[styles.title, styles.lighterText, styles.topMargin]}>About Game</Text>
                 </View>

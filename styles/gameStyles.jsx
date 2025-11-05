@@ -18,4 +18,5 @@ export const styles = StyleSheet.create({
     buttonText: { color: "#96A990", fontSize: 16, fontWeight: "bold", },
     image: { flex: 1, width: '100%', height: '100%', },
     container: { flex: 1, backgroundColor: 'transparent', alignItems: 'center', justifyContent: 'center', },
+    backgroundDark: { backgroundColor: "rgba(0,0,0,0.3)" },
 });

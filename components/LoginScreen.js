@@ -1,7 +1,8 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, Alert, ImageBackground } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { styles } from "../styles/gameStyles";
 
 const LoginScreen = ({ navigation, onLogin }) => {
     const [username, setUsername] = useState("");
@@ -32,37 +33,31 @@ const LoginScreen = ({ navigation, onLogin }) => {
     };
 
     return (
-        <View style={styles.container}>
-            <Text style={styles.title}>Login</Text>
-            <TextInput
-                style={styles.input}
-                placeholder="Username"
-                value={username}
-                onChangeText={setUsername}
-            />
-            <TextInput
-                style={styles.input}
-                placeholder="Password"
-                secureTextEntry
-                value={password}
-                onChangeText={setPassword}
-            />
-            <TouchableOpacity style={styles.button} onPress={handleLogin}>
-                <Text style={styles.buttonText}>Login</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => navigation.replace("Register")}>
-                <Text style={styles.link}>Don't have an account? Register</Text>
-            </TouchableOpacity>
-        </View>
+        <ImageBackground resizeMode="cover" source={require("../assets/bgImage.jpg")} style={{ flex: 1 }}>
+            <View style={[styles.container, styles.backgroundLight]}>
+                <Text style={[styles.title, styles.darkText]}>Login</Text>
+                <TextInput
+                    style={styles.input}
+                    placeholder="Username"
+                    value={username}
+                    onChangeText={setUsername}
+                />
+                <TextInput
+                    style={styles.input}
+                    placeholder="Password"
+                    secureTextEntry
+                    value={password}
+                    onChangeText={setPassword}
+                />
+                <TouchableOpacity style={styles.submitButton} onPress={handleLogin}>
+                    <Text style={styles.submitButtonText}>Login</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => navigation.replace("Register")}>
+                    <Text style={styles.link}>Don't have an account? Register</Text>
+                </TouchableOpacity>
+            </View>
+        </ImageBackground>
     );
 };
-
-const styles = StyleSheet.create({
-    container: { flex: 1, justifyContent: "center", alignItems: "center", padding: 20 },
-    title: { fontSize: 24, fontWeight: "bold", marginBottom: 20 },
-    input: { width: "100%", padding: 10, borderWidth: 1, borderRadius: 5, marginBottom: 10 },
-    button: { backgroundColor: "#356227", padding: 10, borderRadius: 5 },
-    buttonText: { color: "#fff", fontWeight: "bold" },
-});
 
 export default LoginScreen;

@@ -10,6 +10,7 @@ import { createStackNavigator } from "@react-navigation/stack";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { UserProvider } from "./operations/UserContext";
 import { styles } from "./styles/gameStyles";
+import { colours } from "./styles/colourScheme";
 import MaterialIcons from '@react-native-vector-icons/material-icons';
 import { useState, useEffect } from "react";
 
@@ -22,9 +23,9 @@ const MainTabs = ({ onLogout }) => {
       initialRouteName="Game"
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: "#356227",
-        tabBarInactiveTintColor: "#96A990",
-        tabBarStyle: { backgroundColor: "#0c1908ff" },
+        tabBarActiveTintColor: colours.mediumGreen,
+        tabBarInactiveTintColor: colours.lightGreen,
+        tabBarStyle: { backgroundColor: colours.darkGreen },
       }}
     >
       <Tab.Screen
@@ -33,7 +34,7 @@ const MainTabs = ({ onLogout }) => {
         options={{
           tabBarLabel: "Logbook",
           tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="book" color={"#96A990"} size={20} />
+            <MaterialIcons name="book" color={colours.lightGreen} size={20} />
           ),
         }}
       />
@@ -43,7 +44,7 @@ const MainTabs = ({ onLogout }) => {
         options={{
           tabBarLabel: "Main Game",
           tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="videogame-asset" color={"#96A990"} size={20} />
+            <MaterialIcons name="videogame-asset" color={colours.lightGreen} size={20} />
           ),
         }}
       />
@@ -53,7 +54,7 @@ const MainTabs = ({ onLogout }) => {
         options={{
           tabBarLabel: "Profile",
           tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="person" color={"#96A990"} size={20} />
+            <MaterialIcons name="person" color={colours.lightGreen} size={20} />
           ),
         }}
       />
@@ -63,7 +64,7 @@ const MainTabs = ({ onLogout }) => {
         options={{
           tabBarLabel: "About Game",
           tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="info" color={"#96A990"} size={20} />
+            <MaterialIcons name="info" color={colours.lightGreen} size={20} />
           ),
         }}
       />

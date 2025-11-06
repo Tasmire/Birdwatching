@@ -6,8 +6,8 @@ import { styles } from "./styles/gameStyles";
 const Logbook = () => {
     return (
         <ImageBackground resizeMode="cover" source={require("./assets/bgLogbook.jpg")} style={{ flex: 1 }}>
-            <ScrollView>
-                <View>
+            <ScrollView contentContainerStyle={styles.scrollViewContainer}>
+                <View style={styles.viewContainer}>
                     <Text style={[styles.title, styles.darkText, styles.topMargin]}>Logbook</Text>
                 </View>
             </ScrollView>

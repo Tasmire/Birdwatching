@@ -31,11 +31,6 @@
         "projectId": "f3309c3c-7b2b-4bc1-b0e8-7f0a3d018587"
       }
     },
-    "infoPlist": {
-      "NSAppTransportSecurity": {
-        "NSAllowsArbitraryLoads": true
-      }
-    },
     "owner": "tasmire"
   }
 }

@@ -19,13 +19,33 @@ const LoginScreen = ({ navigation, onLogin }) => {
                 body: JSON.stringify({ usernameOrEmail: username, password }),
             });
 
-            if (response.ok) {
-                const userData = await response.json();
-                await AsyncStorage.setItem("userData", JSON.stringify(userData)); // Save user data locally
-                onLogin(); // Update isLoggedIn state in App.js
-            } else {
+            if (!response.ok) {
                 Alert.alert("Login Failed", "Invalid username or password. Please try again.");
+                return;
             }
+
+            const userData = await response.json();
+
+            // Defensive extraction of token and userId from response
+            const token = userData?.token || userData?.accessToken || userData?.tokenString || null;
+            const userId = userData?.userId || userData?.id || userData?.user?.id || null;
+
+            // Save full user object (optional) and the specific keys mainGame expects
+            await AsyncStorage.setItem("userData", JSON.stringify(userData));
+            if (token) {
+                await AsyncStorage.setItem("token", token);
+            } else {
+                console.warn("Login response did not include a token.");
+            }
+
+            // Save gameData exactly as mainGame reads it
+            await AsyncStorage.setItem("gameData", JSON.stringify({ userId, token }));
+
+            // Optional: debug log to verify values in storage (remove in production)
+            console.log("Saved to AsyncStorage:", { userId, token });
+
+            // Notify parent/app that login succeeded
+            if (typeof onLogin === "function") onLogin();
         } catch (error) {
             console.log("Error logging in:", error, error?.message, error?.name);
             Alert.alert("Error", error?.message || "Unable to log in. Please try again later.");

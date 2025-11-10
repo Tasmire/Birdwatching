@@ -5,7 +5,7 @@ import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { styles } from "./styles/gameStyles";
 import { colours } from "./styles/colourScheme";
-import apiCallGet from "./operations/ApiCalls";
+import { apiCallGet, apiCallPost, apiCallPut } from "./operations/ApiCalls";
 
 const UserProfile = ({ onLogout }) => {
 

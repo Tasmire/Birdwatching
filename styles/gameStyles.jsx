@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { colours } from './colourScheme';
+import { colours, withAlpha } from './colourScheme';
 
 export const styles = StyleSheet.create({
     topMargin: { marginTop: 50 },
@@ -26,15 +26,24 @@ export const styles = StyleSheet.create({
     image: { flex: 1, width: '100%', height: '100%', },
     card: { width: '100%', backgroundColor: colours.darkGreen, borderRadius: 8, padding: 16, marginBottom: 16 },
     container: { flex: 1, backgroundColor: 'transparent', alignItems: 'center', justifyContent: 'center', padding: 20, },
+    containerNoPadding: { flex: 1, backgroundColor: 'transparent', alignItems: 'center', justifyContent: 'center', },
     backgroundDark: { backgroundColor: colours.darkOverlay },
     backgroundLight: { backgroundColor: colours.lightOverlay },
     scrollViewContainer: { flexGrow: 1, },
     viewContainer: { flex: 1, padding: 16, justifyContent: 'space-between', },
+    backgroundScrollContainer: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0, },
+    backgroundWide: { width: '160%', height: '100%', resizeMode: 'cover', alignSelf: 'flex-start',},
+    backgroundContent: { alignItems: 'flex-start' },
+    overlayContent: { flex: 1, width: '100%', alignItems: 'center', justifyContent: 'flex-start', zIndex: 1, paddingTop: 20, backgroundColor: 'transparent', position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, },
     //login screen and registration screen styles
     input: { width: "90%", padding: 10, borderWidth: 2, borderRadius: 5, marginBottom: 10, borderColor: colours.mediumGreen, color: colours.darkGreen, backgroundColor: colours.offWhite, },
     link: { color: colours.mediumGreen, marginTop: 10 },
     //environment selection styles
-    environmentButton: { backgroundColor: colours.mediumGreen, paddingVertical: 10, paddingHorizontal: 15, borderRadius: 6, marginHorizontal: 5, },
-    selectedEnvironmentButton: { backgroundColor: colours.accentBrown, },
+    environmentButtons: { flexDirection: "row", justifyContent: "space-around", marginTop: 25, width: "100%", },
+    environmentButton: { backgroundColor: withAlpha(colours.darkGreen, 0.75), width: 50, height: 50, paddingVertical: 15, paddingHorizontal: 15, borderRadius: 25, },
+    selectedEnvironmentButton: { backgroundColor: withAlpha(colours.mediumGreen, 0.85), },
     environmentButtonText: { color: colours.offWhite, fontWeight: "bold", },
+    //bird styles (temporary dimensions)
+    birdAbsolute: { position: 'absolute', transform: [{ translateX: -60 }, { translateY: -60 }], zIndex: 2 }, 
+    birdImage: { width: 120, height: 120, resizeMode: 'contain', justifyContent: 'center', alignItems: 'center', },
 });

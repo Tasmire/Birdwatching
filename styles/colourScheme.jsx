@@ -10,3 +10,12 @@ export const colours = StyleSheet.create({
     darkOverlay: 'rgba(0,0,0,0.3)',
     lightOverlay: 'rgba(215, 231, 210,0.8)',
 });
+
+export function withAlpha(hex, alpha) {
+    // alpha: 0..1
+    const normalized = hex.replace('#', '');
+    const r = parseInt(normalized.substring(0, 2), 16);
+    const g = parseInt(normalized.substring(2, 4), 16);
+    const b = parseInt(normalized.substring(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}

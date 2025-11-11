@@ -1,21 +1,22 @@
 import React, { useState, useEffect, useContext, useRef, useCallback } from "react";
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, ImageBackground, TouchableOpacity, Button } from 'react-native';
+import { StyleSheet, Text, View, ImageBackground, TouchableOpacity, Button, ScrollView } from 'react-native';
 import { styles } from "./styles/gameStyles";
 import { colours } from "./styles/colourScheme";
 import { apiCallGet, apiCallPost, apiCallPut } from "./operations/ApiCalls";
 import generateRandomQuestions from "./operations/GenerateQuestions";
 import takeScreenshot from "./operations/TakeScreenshot";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import MaterialIcons from '@react-native-vector-icons/material-icons';
-import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
-import { library } from '@fortawesome/fontawesome-svg-core'
-import { fas } from '@fortawesome/free-solid-svg-icons'
-import { far } from '@fortawesome/free-regular-svg-icons'
-import { fab } from '@fortawesome/free-brands-svg-icons'
-library.add(fas, far, fab)
+import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
+import { library } from '@fortawesome/fontawesome-svg-core';
+import { fas } from '@fortawesome/free-solid-svg-icons';
+import { far } from '@fortawesome/free-regular-svg-icons';
+import { fab } from '@fortawesome/free-brands-svg-icons';
+
+library.add(fas, far, fab);
 
 const MainGame = () => {
+
     const [selectedEnvironment, setSelectedEnvironment] = useState(null);
     const [birds, setBirds] = useState([]);
     const [currentBirdIndex, setCurrentBirdIndex] = useState(0);
@@ -133,11 +134,11 @@ const MainGame = () => {
             setQuestions(qs);
 
             // Take a screenshot (non-blocking)
-            try {
-                takeScreenshot(viewRef, userId, currentBird);
-            } catch (sErr) {
-                console.warn("Screenshot failed:", sErr);
-            }
+            // try {
+            //     takeScreenshot(viewRef, userId, currentBird);
+            // } catch (sErr) {
+            //     console.warn("Screenshot failed:", sErr);
+            // }
 
             // Save to UserAnimals table
             if (userId) {
@@ -153,58 +154,81 @@ const MainGame = () => {
                     });
                 }
             }
+
+            
+
         } catch (error) {
             console.error("Error handling bird tap:", error);
         }
     };
 
-    return (
-        <View style={styles.container}>
-            
+    const handleQuestionComplete = () => {
+        // Move to next bird
+        setQuestions([]);
+        setCurrentBirdIndex((i) => {
+            if (!birds || birds.length === 0) return 0;
+            const next = i + 1;
+            return next >= birds.length ? 0 : next;
+        });
+    };
 
-            {/* Background Image */}
+    return (
+        <View style={styles.containerNoPadding} ref={viewRef}>
 
             {currentEnvironment && (
-                <ImageBackground source={currentEnvironment.background} style={styles.background}>
-                    {/* Environment Buttons */}
-                    <View style={styles.environmentButtons}>
-                        {environments.map((env) => (
+                <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    style={styles.backgroundScrollContainer}
+                    contentContainerStyle={[styles.backgroundContent, { flexGrow: 1 }]}
+                    nestedScrollEnabled={true}
+                >
+                    <ImageBackground source={currentEnvironment.background} style={styles.backgroundWide} resizeMode="cover">
+                        {/* render bird(s) positioned on the background */}
+                        {currentBird && (
                             <TouchableOpacity
-                                key={env.id}
+                                onPress={handleBirdTap}
+                                // use percent coordinates if available, fallback to center
                                 style={[
-                                    styles.environmentButton,
-                                    selectedEnvironment === env.id && styles.selectedEnvironmentButton,
+                                    styles.birdAbsolute,
+                                    {
+                                        left: currentBird.spawnX != null ? `${currentBird.spawnX * 100}%` : '50%',
+                                        top: currentBird.spawnY != null ? `${currentBird.spawnY * 100}%` : '50%',
+                                    },
                                 ]}
-                                onPress={() => handleEnvironmentChange(env.id)}
                             >
-                                <FontAwesomeIcon icon={['fas', env.icon]} color={colours.lightGreen} size={20} />
+                                <ImageBackground source={{ uri: currentBird.ImageUrl }} style={styles.birdImage}>
+                                    <Text>{currentBird.Name}</Text>
+                                </ImageBackground>
                             </TouchableOpacity>
-                        ))}
-                    </View>
-
-                    <Text style={styles.title}>Current Environment: {currentEnvironment.name}</Text>
-
-                    {/* Show one bird at a time */}
-                    {currentBird ? (
-                        <TouchableOpacity onPress={handleBirdTap}>
-                            <ImageBackground source={{ uri: currentBird.ImageUrl }} style={styles.birdImage}>
-                                <Text style={styles.birdName}>{currentBird.Name}</Text>
-                            </ImageBackground>
-                        </TouchableOpacity>
-                    ) : (
-                        <Text style={styles.title}>No birds available for this environment.</Text>
-                    )}
-
-                    {/* Simple question UI: show first question and Complete button */}
-                    {questions.length > 0 && (
-                        <View style={styles.questionContainer}>
-                            <Text style={styles.questionText}>{questions[0].question}</Text>
-                            {/* Implement proper answering UI here; this is a placeholder to mark completion */}
-                            <Button title="Complete" onPress={handleQuestionComplete} />
-                        </View>
-                    )}
-                </ImageBackground>
+                        )}
+                    </ImageBackground>
+                </ScrollView>
             )}
+            <View style={styles.overlayContent} pointerEvents="box-none">
+                <View style={styles.environmentButtons}>
+                    {environments.map((env) => (
+                        <TouchableOpacity
+                            key={env.id}
+                            style={[
+                                styles.environmentButton,
+                                selectedEnvironment === env.id && styles.selectedEnvironmentButton,
+                            ]}
+                            onPress={() => handleEnvironmentChange(env.id)}
+                        >
+                            <FontAwesomeIcon icon={['fas', env.icon]} color={colours.lightGreen} size={20} />
+                        </TouchableOpacity>
+                    ))}
+                </View>
+
+                {questions.length > 0 && (
+                    <View style={styles.questionContainer}>
+                        <Text style={styles.questionText}>{questions[0].question}</Text>
+                        {/* temporary completion UI */}
+                        <Button title="Complete" onPress={handleQuestionComplete} />
+                    </View>
+                )}
+            </View>
         </View>
     );
 };

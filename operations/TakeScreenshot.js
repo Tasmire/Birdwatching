@@ -16,23 +16,11 @@ const takeScreenshot = async (viewRef, userId, currentBird) => {
             AnimalId: currentBird.AnimalId,
             PhotoUri: uri,
         });
+        return uri;
     } catch (error) {
         console.error("Error taking screenshot:", error);
+        return null;
     }
-    const response = await fetch(url, {
-        method: "POST",
-        headers: {
-            Accept: "application/json",
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-        },
-    });
-
-    if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    return response.json();
 };
 
 export default takeScreenshot;

@@ -1,3 +1,4 @@
+import React from "react";
 import Logbook from "./logbook";
 import MainGame from "./mainGame";
 import UserProfile from "./userProfile";
@@ -9,10 +10,17 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createStackNavigator } from "@react-navigation/stack";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { UserProvider } from "./operations/UserContext";
-import { styles } from "./styles/gameStyles";
+//import { styles } from "./styles/gameStyles";
 import { colours } from "./styles/colourScheme";
-import MaterialIcons from '@react-native-vector-icons/material-icons';
 import { useState, useEffect } from "react";
+import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
+import { library } from '@fortawesome/fontawesome-svg-core';
+import { fas } from '@fortawesome/free-solid-svg-icons';
+import { far } from '@fortawesome/free-regular-svg-icons';
+import { fab } from '@fortawesome/free-brands-svg-icons';
+import PropTypes from 'prop-types';
+
+library.add(fas, far, fab);
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -34,7 +42,7 @@ const MainTabs = ({ onLogout }) => {
         options={{
           tabBarLabel: "Logbook",
           tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="book" color={colours.lightGreen} size={20} />
+            <FontAwesomeIcon icon={['fas', 'book-bookmark']} color={colours.lightGreen} size={20} />
           ),
         }}
       />
@@ -44,7 +52,7 @@ const MainTabs = ({ onLogout }) => {
         options={{
           tabBarLabel: "Main Game",
           tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="videogame-asset" color={colours.lightGreen} size={20} />
+            <FontAwesomeIcon icon={['fas', 'gamepad']} color={colours.lightGreen} size={20} />
           ),
         }}
       />
@@ -54,7 +62,7 @@ const MainTabs = ({ onLogout }) => {
         options={{
           tabBarLabel: "Profile",
           tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="person" color={colours.lightGreen} size={20} />
+            <FontAwesomeIcon icon={['fas', 'user']} color={colours.lightGreen} size={20} />
           ),
         }}
       />
@@ -64,12 +72,16 @@ const MainTabs = ({ onLogout }) => {
         options={{
           tabBarLabel: "About Game",
           tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="info" color={colours.lightGreen} size={20} />
+            <FontAwesomeIcon icon={['fas', 'circle-info']} color={colours.lightGreen} size={20} />
           ),
         }}
       />
     </Tab.Navigator>
   );
+};
+
+MainTabs.propTypes = {
+  onLogout: PropTypes.func,
 };
 
 const App = () => {

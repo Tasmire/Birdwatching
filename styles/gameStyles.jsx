@@ -46,4 +46,13 @@ export const styles = StyleSheet.create({
     //bird styles (temporary dimensions)
     birdAbsolute: { position: 'absolute', transform: [{ translateX: -60 }, { translateY: -60 }], zIndex: 2 }, 
     birdImage: { width: 120, height: 120, resizeMode: 'contain', justifyContent: 'center', alignItems: 'center', },
+    //game question styles
+    questionAnswerContainer: { flex: 1, width: '100%', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, zIndex: 2, },
+    questionContainer: { marginTop: 16, padding: 16, backgroundColor: withAlpha(colours.darkGreen, 0.8), borderRadius: 16, width: '90%', alignSelf: 'center', },
+    answerContainer: { marginBottom: 24, padding: 16, backgroundColor: withAlpha(colours.darkGreen, 0.8), borderRadius: 16, width: '90%', alignSelf: 'center', },
+    questionText: { fontSize: 18, color: colours.offWhite, marginBottom: 6, textAlign: 'center', },
+    answerButton: { backgroundColor: withAlpha(colours.mediumGreen, 0.9), paddingVertical: 10, paddingHorizontal: 16, borderRadius: 12, marginVertical: 6, width: '100%', alignItems: 'center', },
+    answerButtonText: { color: colours.offWhite, fontSize: 16, textAlign: 'center', },
+    correctAnswerButton: { backgroundColor: withAlpha(colours.accentYellow, 0.9), },
+    incorrectAnswerButton: { backgroundColor: withAlpha(colours.accentRed, 0.9), },
 });

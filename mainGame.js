@@ -640,24 +640,27 @@ const MainGame = () => {
                 </View>
 
                 {questions.length > 0 && (
-                    <View style={styles.questionContainer}>
-                        <Text style={styles.questionText}>{questions[0].question}</Text>
-                        {questions[0].answerOptions.map((option, idx) => (
-                            <TouchableOpacity
-                                key={idx}
-                                style={[
-                                    styles.answerButton,
-                                    selectedAnswer === option && styles.selectedAnswerButton,
-                                    isAnsweredCorrectly === true && selectedAnswer === option && styles.correctAnswerButton,
-                                    isAnsweredCorrectly === false && selectedAnswer === option && styles.incorrectAnswerButton
-                                ]}
-                                onPress={() => handleAnswerSelection(option)}
-                                disabled={isAnsweredCorrectly === true}
-                            >
-                                <Text style={styles.answerButtonText}>{option}</Text>
-                            </TouchableOpacity>
-                        ))}
-                        <Button title="Complete" onPress={handleQuestionComplete} />
+                    <View style={styles.questionAnswerContainer}>
+                        <View style={styles.questionContainer}>
+                            <Text style={styles.questionText}>{questions[0].question}</Text>
+                        </View>
+                        <View style={styles.answerContainer}>
+                            {questions[0].answerOptions.map((option, idx) => (
+                                <TouchableOpacity
+                                    key={idx}
+                                    style={[
+                                        styles.answerButton,
+                                        selectedAnswer === option && styles.selectedAnswerButton,
+                                        isAnsweredCorrectly === true && selectedAnswer === option && styles.correctAnswerButton,
+                                        isAnsweredCorrectly === false && selectedAnswer === option && styles.incorrectAnswerButton
+                                    ]}
+                                    onPress={() => handleAnswerSelection(option)}
+                                    disabled={isAnsweredCorrectly !== null}
+                                >
+                                    <Text style={styles.answerButtonText}>{option}</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
                     </View>
                 )}
             </View>

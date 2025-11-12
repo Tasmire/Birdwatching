@@ -6,6 +6,7 @@ export const colours = StyleSheet.create({
     lightGreen: '#96A990',
     accentBrown: '#8a6e44',
     accentRed: '#a83232',
+    accentYellow: '#a6af25',
     offWhite: '#d7e7d2',
     darkOverlay: 'rgba(0,0,0,0.3)',
     lightOverlay: 'rgba(215, 231, 210,0.8)',

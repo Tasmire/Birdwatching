@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useContext, useRef, useCallback } from "react";
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, ImageBackground, TouchableOpacity, Button, ScrollView, Dimensions, Image } from 'react-native';
+import { StyleSheet, Text, View, ImageBackground, TouchableOpacity, Button, ScrollView, Dimensions, Image, Alert } from 'react-native';
 import { styles } from "./styles/gameStyles";
 import { colours } from "./styles/colourScheme";
 import { apiCallGet, apiCallPost, apiCallPut } from "./operations/ApiCalls";
 import generateRandomQuestions from "./operations/GenerateQuestions";
 import takeScreenshot from "./operations/TakeScreenshot";
+import { RandomAnswerOptions } from "./utilities/RandomAnswerOptions";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import Toast from 'react-native-toast-message';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { fas } from '@fortawesome/free-solid-svg-icons';
@@ -18,6 +20,11 @@ import Animated, { useSharedValue, useAnimatedStyle, withDecay, withTiming } fro
 library.add(fas, far, fab);
 
 const MainGame = () => {
+
+    /*
+    Image sizing
+    */
+    
     const { width: windowWidth, height: windowHeight } = Dimensions.get('window');
     const translateX = useSharedValue(0);
     const translateY = useSharedValue(0);
@@ -127,6 +134,10 @@ const MainGame = () => {
         return Math.max(windowWidth / bgDisplayWidth.value, windowHeight / bgDisplayHeight.value, 1);
     };
 
+    /*
+    Background movement and zooming
+    */
+
     // pan gesture to move around the background (use display sizes)
     const pan = Gesture.Pan()
         .onStart(() => {
@@ -185,14 +196,21 @@ const MainGame = () => {
         ],
     }));
 
+    /*
+    Data fetching and game state
+    */
+
     const [selectedEnvironment, setSelectedEnvironment] = useState(null);
     const [birds, setBirds] = useState([]);
+    const [allBirds, setAllBirds] = useState([]);
     const [currentBirdIndex, setCurrentBirdIndex] = useState(0);
     const [environments, setEnvironments] = useState([]);
     const [questions, setQuestions] = useState([]);
     const [spawnData, setSpawnData] = useState([]);
     const [userId, setUserId] = useState(null);
     const [token, setToken] = useState(null);
+    const [selectedAnswer, setSelectedAnswer] = useState(null);
+    const [isAnsweredCorrectly, setIsAnsweredCorrectly] = useState(null);
 
     const viewRef = useRef(null);
 
@@ -227,6 +245,9 @@ const MainGame = () => {
             setSpawnData(spawnData || []);
             const userData = uid ? await apiCallGet(`http://10.0.2.2:5093/api/UsersAPI/${uid}`, tkn) : null;
 
+            const allAnimals = await apiCallGet(`http://10.0.2.2:5093/api/AnimalsAPI`, tkn);
+            setAllBirds(allAnimals || []);
+            
             const imageMapping = {
                 "bgUrban.jpg": require("./assets/bgUrban.jpg"),
                 "bgForest.jpg": require("./assets/bgForest.jpg"),
@@ -250,6 +271,10 @@ const MainGame = () => {
             console.error("Error fetching game data:", error);
         }
     };
+
+    /*
+    Bird fetching per environment
+    */
 
     const IMAGE_BASE_URL = 'http://10.0.2.2:5093/img/animals/';
 
@@ -340,6 +365,10 @@ const MainGame = () => {
         console.log('birds[0]', birds && birds[0]);
     }, [birds]);
 
+    /*
+    Adds environment button functionality
+    */
+
     const handleEnvironmentChange = async (environmentId) => {
         const env = environments.find((env) => env.id === environmentId);
         if (env?.background) setBgSizesFromSource(env.background);
@@ -373,6 +402,10 @@ const MainGame = () => {
         }
     }, [selectedEnvironment, environments]);
 
+    /*
+    Question functionality, sets spotted data
+    */
+
     const currentEnvironment = environments.find((env) => env.id === selectedEnvironment);
     const currentBird = birds && birds.length > 0 ? birds[currentBirdIndex] : null;
 
@@ -390,12 +423,51 @@ const MainGame = () => {
 
             const isSpotted = (spottedData && spottedData.length > 0);
 
-            // Prepare questions
-            const qs = isSpotted
-                ? generateRandomQuestions(currentBird)
-                : [{ question: "What is the name of this bird?", correctAnswer: currentBird.Name }];
+            const fullBird = (allBirds || []).find(a =>
+                String(a.animalId ?? a.AnimalId) === String(currentBird.AnimalId)
+            ) || currentBird;
 
-            setQuestions(qs);
+            // console.log('DEBUG: fullBird for question generation', { fullBirdId: fullBird?.animalId ?? fullBird?.AnimalId, isSpotted });
+
+            // Prepare questions (use fullBird so non-name fields exist)
+            const rawQs = isSpotted
+                ? generateRandomQuestions(fullBird, allBirds)
+                : [{
+                    question: `What is the name of this bird?`,
+                    infoType: 'name',
+                    correctAnswer: fullBird.Name ?? fullBird.name,
+                    answerOptions: RandomAnswerOptions(allBirds, 'name', fullBird.Name ?? fullBird.name, 4) || []
+                }];
+
+            // normalize and sanitize options (remove empty/undefined)
+            const normalizedAll = (rawQs || []).map(q => {
+                let correct = q.correctAnswer ?? q.correct ?? null;
+                if ((correct === undefined || correct === null) && q.infoType) {
+                    const key = q.infoType;
+                    correct = fullBird?.[key] ?? fullBird?.[key.charAt(0).toUpperCase() + key.slice(1)];
+                }
+                const opts = (q.answerOptions || q.options || [])
+                    .filter(v => v !== undefined && v !== null && String(v).trim() !== '')
+                    .map(String);
+
+                return {
+                    question: q.question,
+                    infoType: q.infoType,
+                    correctAnswer: correct != null ? String(correct) : undefined,
+                    answerOptions: opts,
+                };
+            }).filter(q => q.correctAnswer && q.answerOptions && q.answerOptions.length > 0);
+
+            // pick one question at random (gives variety) — fallback to first
+            const chosen = normalizedAll.length > 1
+                ? normalizedAll[Math.floor(Math.random() * normalizedAll.length)]
+                : (normalizedAll[0] || null);
+
+            // console.log('DEBUG question selection', { fullBird, questionsFound: normalizedAll.length, chosen });
+            setQuestions(chosen ? [chosen] : []);
+
+            setSelectedAnswer(null);
+            setIsAnsweredCorrectly(null);
 
             // Take a screenshot (non-blocking)
             // try {
@@ -432,6 +504,62 @@ const MainGame = () => {
 
         } catch (error) {
             console.error("Error handling bird tap:", error);
+        }
+    };
+
+    /*
+    Answer functionality
+    */
+
+    const handleAnswerSelection = async (option) => {
+        if (!questions || questions.length === 0) return;
+        const q = questions[0];
+
+        // console.log('DEBUG: answer pressed', { option, question: q });
+
+        setSelectedAnswer(option);
+        const correct = String(q.correctAnswer) === String(option);
+        setIsAnsweredCorrectly(correct);
+
+        if (correct) {
+            // send unlock record to backend
+            if (userId) {
+                try {
+                    const payload = {
+                        UserId: userId,
+                        AnimalId: currentBird.AnimalId,
+                        InfoType: q.infoType,
+                        IsUnlocked: true,
+                    };
+                    // console.log('DEBUG: posting unlock payload', payload);
+                    await apiCallPost(`http://10.0.2.2:5093/api/UserAnimalInfoUnlockedAPI`, token, payload);
+                } catch (err) {
+                    console.error("Error posting unlock:", err);
+                }
+            }
+            Toast.show({
+                type: 'success',
+                text1: 'Congrats!',
+                text2: 'You answered correctly!',
+                position: 'top'
+            });
+            setTimeout(() => handleQuestionComplete(), 900);
+            
+        //     Alert.alert('Congrats!', 'You answered correctly!', [
+        //         { text: 'Continue', onPress: () => handleQuestionComplete() }
+        //     ]);
+        // } else {
+        //     Alert.alert('Whoops!', 'You answered incorrectly. The bird flew away!', [
+        //         { text: 'Continue', onPress: () => { setSelectedAnswer(null); setIsAnsweredCorrectly(null); } }
+        //     ]);
+        } else {
+            Toast.show({
+                type: 'error',
+                text1: 'Whoops!',
+                text2: 'You answered incorrectly. The bird flew away!',
+                position: 'top'
+            });
+            setTimeout(() => handleQuestionComplete(), 900);
         }
     };
 
@@ -514,7 +642,21 @@ const MainGame = () => {
                 {questions.length > 0 && (
                     <View style={styles.questionContainer}>
                         <Text style={styles.questionText}>{questions[0].question}</Text>
-                        {/* temporary completion UI */}
+                        {questions[0].answerOptions.map((option, idx) => (
+                            <TouchableOpacity
+                                key={idx}
+                                style={[
+                                    styles.answerButton,
+                                    selectedAnswer === option && styles.selectedAnswerButton,
+                                    isAnsweredCorrectly === true && selectedAnswer === option && styles.correctAnswerButton,
+                                    isAnsweredCorrectly === false && selectedAnswer === option && styles.incorrectAnswerButton
+                                ]}
+                                onPress={() => handleAnswerSelection(option)}
+                                disabled={isAnsweredCorrectly === true}
+                            >
+                                <Text style={styles.answerButtonText}>{option}</Text>
+                            </TouchableOpacity>
+                        ))}
                         <Button title="Complete" onPress={handleQuestionComplete} />
                     </View>
                 )}

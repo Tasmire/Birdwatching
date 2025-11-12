@@ -19,11 +19,35 @@ import { fas } from '@fortawesome/free-solid-svg-icons';
 import { far } from '@fortawesome/free-regular-svg-icons';
 import { fab } from '@fortawesome/free-brands-svg-icons';
 import PropTypes from 'prop-types';
+import Toast, { BaseToast, ErrorToast } from 'react-native-toast-message';
 
 library.add(fas, far, fab);
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
+
+const toastConfig = {
+  success: (props) => (
+    <BaseToast
+      {...props}
+      style={{ borderLeftColor: colours.mediumGreen, backgroundColor: colours.offWhite }}
+      text1Style={{ fontSize: 16, fontWeight: 'bold', color: colours.darkGreen }}
+      text1={props.text1}
+      text2Style={{ fontSize: 14, color: colours.darkGreen }}
+      text2={props.text2}
+    />
+  ),
+  error: (props) => (
+    <ErrorToast
+      {...props}
+      style={{ borderLeftColor: colours.accentRed, backgroundColor: colours.offWhite }}
+      text1Style={{ fontSize: 16, fontWeight: 'bold', color: colours.darkGreen }}
+      text1={props.text1}
+      text2Style={{ fontSize: 14, color: colours.darkGreen }}
+      text2={props.text2}
+    />
+  ),
+};
 
 const MainTabs = ({ onLogout }) => {
   return (
@@ -129,6 +153,7 @@ const App = () => {
           )}
         </Stack.Navigator>
       </NavigationContainer>
+      <Toast config={toastConfig} />
     </UserProvider>
   );
 };

@@ -50,9 +50,9 @@ const MainTabs = ({ onLogout }) => {
         name="Game"
         component={MainGame}
         options={{
-          tabBarLabel: "Main Game",
+          tabBarLabel: "Play Game",
           tabBarIcon: ({ color, size }) => (
-            <FontAwesomeIcon icon={['fas', 'gamepad']} color={colours.lightGreen} size={20} />
+            <FontAwesomeIcon icon={['fas', 'binoculars']} color={colours.lightGreen} size={20} />
           ),
         }}
       />

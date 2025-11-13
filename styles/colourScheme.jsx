@@ -5,6 +5,7 @@ export const colours = StyleSheet.create({
     mediumGreen: '#356227',
     lightGreen: '#96A990',
     accentBrown: '#8a6e44',
+    dullGreen: '#283325',
     accentRed: '#a83232',
     accentYellow: '#a6af25',
     offWhite: '#d7e7d2',

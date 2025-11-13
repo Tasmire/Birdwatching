@@ -20,6 +20,7 @@ import { far } from '@fortawesome/free-regular-svg-icons';
 import { fab } from '@fortawesome/free-brands-svg-icons';
 import { useFonts, InclusiveSans_400Regular, InclusiveSans_700Bold } from '@expo-google-fonts/inclusive-sans';
 import { IndieFlower_400Regular } from '@expo-google-fonts/indie-flower';
+import { FuzzyBubbles_400Regular, FuzzyBubbles_700Bold } from '@expo-google-fonts/fuzzy-bubbles';
 import PropTypes from 'prop-types';
 import Toast, { BaseToast, ErrorToast } from 'react-native-toast-message';
 
@@ -118,11 +119,9 @@ const App = () => {
     InclusiveSans_400Regular,
     InclusiveSans_700Bold,
     IndieFlower_400Regular,
+    FuzzyBubbles_400Regular,
+    FuzzyBubbles_700Bold,
   });
-
-  if (!fontsLoaded) {
-    return null;
-  }
 
   useEffect(() => {
     const checkLoginStatus = async () => {
@@ -133,6 +132,10 @@ const App = () => {
 
     checkLoginStatus();
   }, []);
+
+  if (!fontsLoaded) {
+    return null;
+  }
 
   if (loading) {
     return null;

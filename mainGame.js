@@ -9,6 +9,7 @@ import takeScreenshot from "./operations/TakeScreenshot";
 import { evaluateAchievements } from "./operations/EvaluateAchievements";
 import { RandomAnswerOptions } from "./utilities/RandomAnswerOptions";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { DeviceEventEmitter } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { library } from '@fortawesome/fontawesome-svg-core';
@@ -207,7 +208,8 @@ const MainGame = () => {
     const [currentBirdIndex, setCurrentBirdIndex] = useState(0);
     const [environments, setEnvironments] = useState([]);
     const [questions, setQuestions] = useState([]);
-    const [spawnData, setSpawnData] = useState([]);
+    const [spawnData, setSpawnData] = useState({});
+    const [achievementsMap, setAchievementsMap] = useState({});
     const [userId, setUserId] = useState(null);
     const [token, setToken] = useState(null);
     const [selectedAnswer, setSelectedAnswer] = useState(null);
@@ -242,13 +244,77 @@ const MainGame = () => {
             setToken(tkn);
 
             const environmentData = await apiCallGet(`http://10.0.2.2:5093/api/EnvironmentsAPI`, tkn);
-            const spawnData = await apiCallGet(`http://10.0.2.2:5093/api/SpawnLocationsAPI`, tkn);
-            setSpawnData(spawnData || []);
+
+            // NEW: fetch spawn locations (many-to-many now). We'll build a map animalId => [spawnLocations]
+            // try multiple possible endpoints / shapes and log results so we can see what's returned
+            let spawnLocationsRaw = await apiCallGet(`http://10.0.2.2:5093/api/SpawnLocationsAPI`, tkn);
+            // console.log('spawnFetchAttempt 1 ->', Array.isArray(spawnLocationsRaw) ? `array(${spawnLocationsRaw.length})` : typeof spawnLocationsRaw, spawnLocationsRaw);
+            if (!spawnLocationsRaw || (Array.isArray(spawnLocationsRaw) && spawnLocationsRaw.length === 0)) {
+                // fallback to alternate route name
+                spawnLocationsRaw = await apiCallGet(`http://10.0.2.2:5093/api/SpawnLocations`, tkn);
+                // console.log('spawnFetchAttempt 2 ->', Array.isArray(spawnLocationsRaw) ? `array(${spawnLocationsRaw.length})` : typeof spawnLocationsRaw, spawnLocationsRaw);
+            }
+
+            // some servers wrap results in { data: [...] } or { value: [...] }
+            if (spawnLocationsRaw && !Array.isArray(spawnLocationsRaw)) {
+                if (Array.isArray(spawnLocationsRaw.data)) spawnLocationsRaw = spawnLocationsRaw.data;
+                else if (Array.isArray(spawnLocationsRaw.value)) spawnLocationsRaw = spawnLocationsRaw.value;
+                else if (spawnLocationsRaw.items && Array.isArray(spawnLocationsRaw.items)) spawnLocationsRaw = spawnLocationsRaw.items;
+                else spawnLocationsRaw = [];
+            }
+
+            // build lookup map from normalized spawnLocationsRaw
+            const spawnMap = {};
+            (spawnLocationsRaw || []).forEach(sp => {
+                 // defensive property names
+                 const spId = sp.spawnLocationId ?? sp.SpawnLocationId ?? sp.spawnLocationId;
+                 const rawX = sp.xCoordinate ?? sp.XCoordinate ?? sp.x ?? 0;
+                 const rawY = sp.yCoordinate ?? sp.YCoordinate ?? sp.y ?? 0;
+                 const scale = sp.scale ?? sp.Scale ?? 1;
+                 const spawnType = sp.spawnType ?? sp.SpawnType ?? null;
+                // the API may include Animals as full objects or as IDs; handle common shapes
+                const animalsList = sp.animals ?? sp.Animals ?? sp.AnimalIds ?? sp.animalIds ?? sp.Animal ?? sp.AnimalsList ?? [];
+                 // normalize animalsList to array of ids
+                const ids = Array.isArray(animalsList)
+                    ? animalsList.map(a => (typeof a === 'object' ? (a.animalId ?? a.AnimalId ?? a.id ?? a.Id) : a)).filter(Boolean)
+                    : [];
+ 
+                 ids.forEach(aid => {
+                    // normalize the key to lowercase string for reliable lookups
+                    const key = String(aid).toLowerCase();
+                    if (!spawnMap[key]) spawnMap[key] = [];
+                    spawnMap[key].push({
+                         spawnLocationId: spId,
+                         spawnX: rawX,
+                         spawnY: rawY,
+                         spawnScale: scale,
+                         spawnType,
+                         raw: sp,
+                     });
+                 });
+             });
+ 
+             // store spawnMap in state so other functions can use it (previous code used spawnData)
+             setSpawnData(spawnMap);
+ 
+            // console.log("spawnMap (keys):", Object.keys(spawnMap).slice(0,20), spawnMap);
+
             const userData = uid ? await apiCallGet(`http://10.0.2.2:5093/api/UsersAPI/${uid}`, tkn) : null;
 
             const allAnimals = await apiCallGet(`http://10.0.2.2:5093/api/AnimalsAPI`, tkn);
             setAllBirds(allAnimals || []);
             
+            // fetch achievement definitions once and store as map by id (for toasts)
+            try {
+                const allAch = await apiCallGet(`http://10.0.2.2:5093/api/AchievementsAPI`, tkn) || [];
+                const map = {};
+                (allAch || []).forEach(a => {
+                    const id = String(a.achievementId ?? a.AchievementId ?? a.id ?? a.Id);
+                    if (id) map[id] = a;
+                });
+                setAchievementsMap(map);
+            } catch (e) { console.warn('Unable to load achievement definitions', e); }
+
             const imageMapping = {
                 "bgUrban.jpg": require("./assets/bgUrban.jpg"),
                 "bgForest.jpg": require("./assets/bgForest.jpg"),
@@ -266,6 +332,8 @@ const MainGame = () => {
 
             if (formattedEnvironments.length > 0) {
                 setSelectedEnvironment(formattedEnvironments[0].id);
+                // immediately fetch birds for the initial environment using the spawnMap
+                fetchBirds(formattedEnvironments[0].id, tkn, spawnMap);
             }
 
         } catch (error) {
@@ -279,7 +347,8 @@ const MainGame = () => {
 
     const IMAGE_BASE_URL = 'http://10.0.2.2:5093/img/animals/';
 
-    const fetchBirds = async (environmentId, tkn = token) => {
+    // spawnMapOverride: optional map built locally (used to avoid reading stale state immediately after setSpawnData)
+    const fetchBirds = async (environmentId, tkn = token, spawnMapOverride = null) => {
         try {
             if (!environmentId) return;
             console.log('fetchBirds called with environmentId:', environmentId, ' token:', !!tkn);
@@ -292,10 +361,9 @@ const MainGame = () => {
             // normalize spawn locations to fraction [0..1] for left/top percent rendering
             const normalizeSpawn = (sl) => {
                 if (!sl) return null;
-                const rawX = sl.xCoordinate ?? sl.spawnX ?? 0;
-                const rawY = sl.yCoordinate ?? sl.spawnY ?? 0;
-                // spawn scale lets you make birds smaller when they are "further back"
-                const spawnScale = sl.spawnScale ?? sl.scale ?? 1;
+                const rawX = sl.spawnX ?? sl.xCoordinate ?? sl.XCoordinate ?? sl.raw?.XCoordinate ?? sl.raw?.xCoordinate ?? 0;
+                const rawY = sl.spawnY ?? sl.yCoordinate ?? sl.YCoordinate ?? sl.raw?.YCoordinate ?? sl.raw?.yCoordinate ?? 0;
+                const spawnScale = sl.spawnScale ?? sl.scale ?? sl.raw?.Scale ?? 1;
                 // uses fractions if stored in DB, otherwise converts pixels to fractions
                 const intrinsicW = bgIntrinsicWidth.value || bgDisplayWidth.value || windowWidth;
                 const intrinsicH = bgIntrinsicHeight.value || bgDisplayHeight.value || windowHeight;
@@ -305,8 +373,7 @@ const MainGame = () => {
                 // clamp to [0..1]
                 spawnX = Math.min(1, Math.max(0, spawnX));
                 spawnY = Math.min(1, Math.max(0, spawnY));
-                // otherwise assume absolute pixels relative to bg size
-                return { spawnX, spawnY, spawnScale, spawnLocationId: sl.spawnLocationId, rawX, rawY };
+                return { spawnX, spawnY, spawnScale, spawnLocationId: sl.spawnLocationId ?? sl.spawnLocationId ?? sl.raw?.SpawnLocationId, raw: sl.raw };
             };
 
             const mapped = (birdsForEnv || []).map(b => {
@@ -325,14 +392,16 @@ const MainGame = () => {
                     birdImage = birdImageRaw;
                 }
 
-                const rawSpawns = (b.spawnLocations && b.spawnLocations.length)
-                    ? b.spawnLocations
-                    : (spawnData || []).filter((s) => {
-                        const sid = s.animalId ?? s.AnimalId ?? s.animal?.animalId ?? s.animal?.AnimalId ?? null;
-                        const matches = String(sid) === String(birdId);
-                        return matches;
-                    });
-                
+                // prefer the override map if provided (freshly built), otherwise fall back to state
+                const spawnLookup = spawnMapOverride ?? spawnData;
+                // normalize bird id when checking the lookup
+                const birdKey = String(birdId).toLowerCase();
+                const rawSpawns = (spawnLookup && spawnLookup[birdKey]) ? spawnLookup[birdKey] : (b.spawnLocations || []);
+                if ((!rawSpawns || rawSpawns.length === 0) && spawnLookup) {
+                    // helpful debug when no spawn found
+                    console.log('spawn lookup miss for bird:', birdId, 'birdKey:', birdKey, 'availableKeysSample:', Object.keys(spawnLookup).slice(0,10));
+                }
+
                 const normalized = (rawSpawns || []).map(normalizeSpawn).filter(Boolean);
                 const finalSpawns = (normalized && normalized.length > 0)
                     ? normalized
@@ -416,6 +485,9 @@ const MainGame = () => {
             console.warn("Missing userId or token; cannot record spotting.");
         }
 
+        //sends debug log to console showing current bird data
+        console.log('DEBUG: handleBirdTap for bird:', currentBird.Name ?? currentBird.name, 'ID:', currentBird.AnimalId ?? currentBird.animalId);
+
         try {
             // Check if the bird has been spotted before
             const spottedData = userId
@@ -496,8 +568,16 @@ const MainGame = () => {
                     // checks if any achievements unlocked
                     const awarded = await evaluateAchievements(userId, currentBird.AnimalId, token);
                     if (awarded && awarded.length > 0) {
-                        awarded.forEach(a => {
-                            Toast.show({ type: 'success', text1: 'Achievement unlocked!', text2: `You earned an achievement.`, position: 'top' });
+                        awarded.forEach(ua => {
+                            const aid = String(ua.achievementId ?? ua.AchievementId ?? ua.Achievement);
+                            const def = achievementsMap[String(aid)] ?? achievementsMap[String(aid).toLowerCase?.()] ?? null;
+                            Toast.show({
+                                type: 'success',
+                                text1: def?.title ?? 'Achievement unlocked!',
+                                text2: def?.description ?? 'Check your profile to view it.',
+                                position: 'top',
+                                visibilityTime: 4000
+                            });
                         });
                     }
                 } else {
@@ -507,7 +587,7 @@ const MainGame = () => {
                     });
                     const awarded = await evaluateAchievements(userId, currentBird.AnimalId, token);
                     if (awarded && awarded.length > 0) {
-                        awarded.forEach(a => Toast.show({ type: 'success', text1: 'Achievement unlocked!', text2: `You earned an achievement.`, position: 'top' }));
+                        awarded.forEach(a => Toast.show({ type: 'success', text1: 'Achievement unlocked!', text2: `Check your profile to view it.`, position: 'top' }));
                     }
                 }
             }
@@ -543,16 +623,22 @@ const MainGame = () => {
                         InfoType: q.infoType,
                         IsUnlocked: true,
                     };
-                    // console.log('DEBUG: posting unlock payload', payload);
-                    await apiCallPost(`http://10.0.2.2:5093/api/UserAnimalInfoUnlockedAPI`, token, payload);
+                    console.log('Posting unlock payload:', payload);
+                    const res = await apiCallPost(`http://10.0.2.2:5093/api/UserAnimalInfoUnlockedAPI`, token, payload);
+                    console.log('UserAnimalInfoUnlocked POST result:', res);
+                    // notify other screens
+                    DeviceEventEmitter.emit('userInfoUnlocked', { animalId: String(currentBird.AnimalId), infoType: q.infoType });
                     const awarded = await evaluateAchievements(userId, currentBird.AnimalId, token);
                     if (awarded && awarded.length > 0) {
-                        awarded.forEach(a => {
+                        awarded.forEach(ua => {
+                            const aid = String(ua.achievementId ?? ua.AchievementId ?? ua.Achievement);
+                            const def = achievementsMap[String(aid)] ?? achievementsMap[String(aid).toLowerCase?.()] ?? null;
                             Toast.show({
                                 type: 'success',
-                                text1: 'Achievement unlocked!',
-                                text2: 'Check your profile to view it.',
-                                position: 'top'
+                                text1: def?.title ?? 'Achievement unlocked!',
+                                text2: def?.description ?? 'Check your profile to view it.',
+                                position: 'top',
+                                visibilityTime: 4000
                             });
                         });
                     }
@@ -566,7 +652,8 @@ const MainGame = () => {
                 text2: 'You answered correctly!',
                 position: 'top'
             });
-            setTimeout(() => handleQuestionComplete(), 900);
+            // advance after a short delay so toast/animation can show
+            setTimeout(advanceBird, 900);
             
         //     Alert.alert('Congrats!', 'You answered correctly!', [
         //         { text: 'Continue', onPress: () => handleQuestionComplete() }
@@ -582,19 +669,26 @@ const MainGame = () => {
                 text2: 'You answered incorrectly. The bird flew away!',
                 position: 'top'
             });
-            setTimeout(() => handleQuestionComplete(), 900);
+            setTimeout(advanceBird, 900);
         }
     };
 
-    const handleQuestionComplete = () => {
-        // Move to next bird
+    // stable advance function: clear question state and advance to the next bird reliably
+    const advanceBird = useCallback(() => {
         setQuestions([]);
+        setSelectedAnswer(null);
+        setIsAnsweredCorrectly(null);
         setCurrentBirdIndex((i) => {
-            if (!birds || birds.length === 0) return 0;
-            const next = i + 1;
-            return next >= birds.length ? 0 : next;
+            try {
+                const len = Array.isArray(birds) ? birds.length : 0;
+                if (len === 0) return 0;
+                const next = (typeof i === 'number' ? i : 0) + 1;
+                return next >= len ? 0 : next;
+            } catch (e) {
+                return 0;
+            }
         });
-    };
+    }, [birds]);
 
     return (
         <View style={styles.containerNoPadding} ref={viewRef}>

@@ -85,7 +85,14 @@ export const styles = StyleSheet.create({
     detailRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8, },
     detailLabel: { fontSize: 16, color: colours.lightGreen, marginBottom: 12, fontFamily: 'FuzzyBubbles_700Bold' },
     detailValue: { fontSize: 16, color: colours.offWhite, marginBottom: 12, fontFamily: 'FuzzyBubbles_400Regular' },
-    modalActions: { marginTop: 16, alignItems: 'flex-end', },
-    closeButton: { backgroundColor: colours.mediumGreen, paddingVertical: 10, paddingHorizontal: 20, borderRadius: 6, alignItems: "center", marginTop: 10, },
+    modalActions: { alignItems: 'flex-end', },
+    closeButton: { backgroundColor: colours.accentRed, paddingVertical: 10, paddingHorizontal: 20, borderRadius: 6, alignItems: "center", },
     closeButtonText: { color: colours.offWhite, fontSize: 16, fontFamily: 'FuzzyBubbles_700Bold' },
+    modalButtons: { flexDirection: 'row', justifyContent: 'space-between', gap: 10, marginTop: 16, },
+    //gallery styles
+    galleryButton: { backgroundColor: colours.mediumGreen, paddingVertical: 10, paddingHorizontal: 20, borderRadius: 6, alignItems: "center", },
+    galleryButtonText: { color: colours.offWhite, fontSize: 16, fontFamily: 'FuzzyBubbles_700Bold' },
+    galleryGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', },
+    galleryThumb: { flex: 1, maxWidth: '48%', aspectRatio: 1, borderRadius: 8, backgroundColor: '#000', margin: 6, overflow: 'hidden' },
+    galleryThumbImage: { width: '100%', height: '100%', backgroundColor: 'transparent', },
 });

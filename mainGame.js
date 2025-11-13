@@ -217,7 +217,6 @@ const MainGame = () => {
     const [isCapturing, setIsCapturing] = useState(false);
 
     const viewRef = useRef(null);
-
     const shuffleArray = (arr) => {
         const a = [...arr];
         for (let i = a.length - 1; i > 0; i--) {
@@ -352,12 +351,12 @@ const MainGame = () => {
     const fetchBirds = async (environmentId, tkn = token, spawnMapOverride = null) => {
         try {
             if (!environmentId) return;
-            console.log('fetchBirds called with environmentId:', environmentId, ' token:', !!tkn);
+            // console.log('fetchBirds called with environmentId:', environmentId, ' token:', !!tkn);
             const birdsData = await apiCallGet(`http://10.0.2.2:5093/api/AnimalsAPI?environmentId=${environmentId}`, tkn);
 
             const birdsForEnv = (birdsData || []).filter(b => String(b.environmentId ?? b.EnvironmentId) === String(environmentId));
 
-            console.log('birdsData length:', (birdsData || []).length, 'birdsForEnv length:', birdsForEnv.length);
+            // console.log('birdsData length:', (birdsData || []).length, 'birdsForEnv length:', birdsForEnv.length);
 
             // normalize spawn locations to fraction [0..1] for left/top percent rendering
             const normalizeSpawn = (sl) => {
@@ -612,8 +611,9 @@ const MainGame = () => {
         }
 
         try {
-            // Capture first (do NOT show the overlay while capturing)
-            const uri = await takeScreenshot(viewRef.current, userId, currentBird /* cropRect optional, now handled inside */);
+            const overlaySide = Math.max(1, Math.min(windowWidth, windowHeight) - 40);
+            // pass viewport size so TakeScreenshot can request capture in device pixels
+            const uri = await takeScreenshot(viewRef.current, userId, currentBird, { side: overlaySide, viewportW: windowWidth, viewportH: windowHeight });
             // show short flash/overlay after capture to indicate success
             setIsCapturing(true);
 
@@ -706,7 +706,7 @@ const MainGame = () => {
         }
     };
 
-    // stable advance function: clear question state and advance to the next bird reliably
+    // clear question state and advance to the next bird
     const advanceBird = useCallback(() => {
         setQuestions([]);
         setSelectedAnswer(null);
@@ -727,13 +727,15 @@ const MainGame = () => {
         <View style={styles.containerNoPadding}>
             {currentEnvironment && (
                 <View
-                    // capture target: attach native ref here and prevent RN from collapsing it
                     ref={viewRef}
                     collapsable={false}
                     style={{ width: windowWidth, height: windowHeight, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' }}
                 >
                      <GestureDetector gesture={gesture}>
-                         <Animated.View style={[{ width: bgDisplayW, height: bgDisplayH }, animatedStyle]}>
+                         <Animated.View
+                             collapsable={false}
+                             style={[{ width: bgDisplayW, height: bgDisplayH }, animatedStyle]}
+                         >
                              <ImageBackground
                                  source={currentEnvironment.background}
                                  style={{ width: bgDisplayW, height: bgDisplayH }}
@@ -767,7 +769,6 @@ const MainGame = () => {
                                                  source={currentBird.ImageUrl || undefined}
                                                  style={{ width: '100%', height: '100%' }}
                                              >
-                                                 <Text>{currentBird.Name}</Text>
                                              </ImageBackground>
                                          </TouchableOpacity>
                                      );

@@ -8,6 +8,7 @@ import { apiCallGet } from "./operations/ApiCalls";
 import Starburst from './components/Starburst';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { useIsFocused } from '@react-navigation/native';
+import { FlatList } from 'react-native';
 
 const { width: windowWidth, height: windowHeight } = Dimensions.get('window');
 
@@ -128,12 +129,25 @@ const Logbook = () => {
         }
         try {
             const res = await apiCallGet(`http://10.0.2.2:5093/api/UserAnimalPhotosAPI?userId=${uid}&animalId=${animalId}`, tkn) || [];
-            // normalize into objects with id and url (preserve other fields if available)
-            const photos = (res || []).map(p => ({
-                id: p.userAnimalPhotoId ?? p.UserAnimalPhotoId ?? p.UserAnimalPhotoId ?? p.id ?? p.Id ?? null,
+            console.debug('[fetchPhotosForAnimal] raw response length:', Array.isArray(res) ? res.length : 'not-array', res && res.slice ? res.slice(0,3) : res);
+
+            // Filter server results to only those that match the requested animalId (be defensive about field names)
+            const filtered = (res || []).filter(r => {
+                const rid = String(r.animalId ?? r.AnimalId ?? r.Animal?.animalId ?? r.Animal?.AnimalId ?? '');
+                return rid && String(rid) === String(animalId);
+            });
+
+            // If server didn't include animalId on records, fall back to server-side filter not working:
+            if (filtered.length === 0 && Array.isArray(res) && res.length > 0) {
+                console.warn('[fetchPhotosForAnimal] no records contained animalId; server may be returning all user photos. Inspect server response above.');
+            }
+
+            const photos = (filtered.length > 0 ? filtered : res || []).map(p => ({
+                id: p.userAnimalPhotoId ?? p.UserAnimalPhotoId ?? p.id ?? p.Id ?? null,
                 url: p.photoUrl ?? p.PhotoUrl ?? p.photoUri ?? p.PhotoUri ?? '',
                 dateUploaded: p.dateUploaded ?? p.DateUploaded ?? null,
             })).filter(x => x.url);
+
             setModalPhotos(photos);
         } catch (err) {
             console.error('fetchPhotosForAnimal', err);
@@ -321,28 +335,28 @@ const Logbook = () => {
                                     })}
                                 </View>
 
-                                {/* Gallery section */}
-                                <View style={{ marginTop: 12 }}>
-                                    <Text style={[styles.sectionTitle, { color: colours.lightGreen }]}>Gallery</Text>
-
-                                    <View style={{ marginTop: 12, alignItems: 'flex-end' }}>
-                                        <TouchableOpacity
-                                            onPress={() => {
-                                               const aid = String(modalBird?.animalId ?? modalBird?.AnimalId ?? '');
-                                                if (aid && userId) fetchPhotosForAnimal(aid, userId, token);
-                                                setShowGalleryModal(true);
-                                            }}
-                                            style={[styles.closeButton, { paddingHorizontal: 14 }]}
-                                        >
-                                            <Text style={styles.closeButtonText}>Open gallery</Text>
+                                <View style={styles.modalButtons}>
+                                    {/* Gallery section */}
+                                    <View>
+                                        <View>
+                                            <TouchableOpacity
+                                                onPress={() => {
+                                                const aid = String(modalBird?.animalId ?? modalBird?.AnimalId ?? '');
+                                                    if (aid && userId) fetchPhotosForAnimal(aid, userId, token);
+                                                    setShowGalleryModal(true);
+                                                }}
+                                                style={[styles.galleryButton, { paddingHorizontal: 14 }]}
+                                            >
+                                                <Text style={styles.galleryButtonText}>Open gallery</Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    </View>
+                                    
+                                    <View style={styles.modalActions}>
+                                        <TouchableOpacity onPress={() => closeBirdModal()} style={styles.closeButton}>
+                                            <Text style={styles.closeButtonText}>Close</Text>
                                         </TouchableOpacity>
                                     </View>
-                                </View>
-                                
-                                <View style={styles.modalActions}>
-                                    <TouchableOpacity onPress={() => closeBirdModal()} style={styles.closeButton}>
-                                        <Text style={styles.closeButtonText}>Close</Text>
-                                    </TouchableOpacity>
                                 </View>
                             </View>
                         </View>
@@ -359,24 +373,25 @@ const Logbook = () => {
                                 {modalPhotos.length === 0 ? (
                                     <Text style={{ color: colours.offWhite }}>No photos yet. Take a photo in the game to add one.</Text>
                                 ) : (
-                                    <ScrollView style={{ maxHeight: 480 }}>
-                                        {(modalPhotos || []).map((p, idx) => (
-                                            <View key={String(p.id ?? idx)} style={{ marginBottom: 12 }}>
-                                                <TouchableOpacity activeOpacity={0.9} onPress={() => setFullScreenPhoto(p)}>
-                                                    <Image source={{ uri: p.url }} style={{ width: '100%', height: 260, borderRadius: 8, backgroundColor: '#000' }} resizeMode="cover" />
+                                        <FlatList 
+                                            data={modalPhotos}
+                                            keyExtractor={(item, idx) => String(item.id ?? idx)}
+                                            numColumns={2}
+                                            columnWrapperStyle={{ justifyContent: 'space-between' }}
+                                            contentContainerStyle={{ padding: 8, paddingBottom: 16, maxHeight: 480 }} 
+                                            renderItem={({ item }) => (
+                                                <TouchableOpacity
+                                                style={styles.galleryThumb}
+                                                activeOpacity={0.85}
+                                                onPress={() => setFullScreenPhoto(item)}
+                                                >
+                                                    <Image source={{ uri: item.url }} style={styles.galleryThumbImage} resizeMode="cover" />
                                                 </TouchableOpacity>
-
-                                                <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 8 }}>
-                                                    <TouchableOpacity onPress={() => deletePhoto(p.id)} style={[styles.closeButton, { paddingHorizontal: 12 }]}>
-                                                        <Text style={styles.closeButtonText}>Delete</Text>
-                                                    </TouchableOpacity>
-                                                </View>
-                                            </View>
-                                        ))}
-                                    </ScrollView>
+                                            )}
+                                        />
                                 )}
 
-                                <View style={styles.modalActions}>
+                                <View style={[styles.modalActions, { marginTop: 12, alignItems: 'center' }]}>
                                     <TouchableOpacity onPress={() => setShowGalleryModal(false)} style={styles.closeButton}>
                                         <Text style={styles.closeButtonText}>Close</Text>
                                     </TouchableOpacity>

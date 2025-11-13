@@ -10,6 +10,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createStackNavigator } from "@react-navigation/stack";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { UserProvider } from "./operations/UserContext";
+import { loadApiEnvironment } from './operations/ApiConfig';
 //import { styles } from "./styles/gameStyles";
 import { colours } from "./styles/colourScheme";
 import { useState, useEffect } from "react";
@@ -125,6 +126,7 @@ const App = () => {
 
   useEffect(() => {
     const checkLoginStatus = async () => {
+      await loadApiEnvironment();
       const userData = await AsyncStorage.getItem("userData");
       setIsLoggedIn(!!userData); // If userData exists, user is logged in
       setLoading(false); // Stop loading once login status is determined

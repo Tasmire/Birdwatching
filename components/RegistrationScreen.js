@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, Alert, ImageBackground } from 
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { styles } from "../styles/gameStyles";
+import { apiUrl } from "../operations/ApiConfig";
 
 const RegistrationScreen = ({ navigation }) => {
     const [username, setUsername] = useState("");
@@ -11,7 +12,7 @@ const RegistrationScreen = ({ navigation }) => {
 
     const handleRegister = async () => {
         try {
-            const response = await fetch("http://10.0.2.2:5093/api/UsersAPI/register", {
+            const response = await fetch(apiUrl("/api/UsersAPI/register"), {
                 method: "POST",
                 headers: {
                     Accept: "application/json",

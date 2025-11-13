@@ -1,7 +1,10 @@
+import { apiUrl } from "./ApiConfig";
+
 const apiCallGet = async (url, token) => {
     try {
-        const response = await fetch(url, {
+        const response = await fetch(apiUrl(url), {
             method: "GET",
+            credentials: 'include',
             headers: {
                 Authorization: `Bearer ${token}`,
                 "Content-Type": "application/json",
@@ -25,10 +28,10 @@ const apiCallPost = async (url, token, body) => {
         if (token) headers.Authorization = `Bearer ${token}`;
 
         const bodyText = typeof body === "string" ? body : JSON.stringify(body);
-        // console.log("API POST ->", { url, headers: Object.keys(headers), body: bodyText });
 
-        const response = await fetch(url, {
+        const response = await fetch(apiUrl(url), {
             method: "POST",
+            credentials: 'include',
             headers,
             body: bodyText,
         });
@@ -64,8 +67,9 @@ const apiCallPut = async (url, token, body) => {
         };
         if (token) headers.Authorization = `Bearer ${token}`;
 
-        const response = await fetch(url, {
+        const response = await fetch(apiUrl(url), {
             method: "PUT",
+            credentials: 'include',
             headers,
             body: typeof body === "string" ? body : JSON.stringify(body),
         });

@@ -6,7 +6,7 @@ export async function evaluateAchievements(userId, animalId = null, token = null
     if (animalId) payload.AnimalId = animalId;
 
     try {
-        const res = await apiCallPost(`http://10.0.2.2:5093/api/AchievementEvaluation/evaluate`, token, payload);
+        const res = await apiCallPost(`/api/AchievementEvaluation/evaluate`, token, payload);
         return res || null;
     } catch (err) {
         console.warn('evaluateAchievements error', err);

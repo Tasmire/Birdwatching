@@ -9,6 +9,7 @@ import Starburst from './components/Starburst';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { useIsFocused } from '@react-navigation/native';
 import { FlatList } from 'react-native';
+import { apiUrl } from "./operations/ApiConfig";
 
 const { width: windowWidth, height: windowHeight } = Dimensions.get('window');
 
@@ -45,7 +46,7 @@ const Logbook = () => {
 
     const fetchUnlockedForUser = async (uid, tkn) => {
         try {
-            const unlocked = await apiCallGet(`http://10.0.2.2:5093/api/UserAnimalInfoUnlockedAPI?userId=${uid}`, tkn) || [];
+            const unlocked = await apiCallGet(`/api/UserAnimalInfoUnlockedAPI?userId=${uid}`, tkn) || [];
             const map = {};
             (unlocked || []).forEach(u => {
                 const aid = String(u.animalId ?? u.AnimalId ?? u.Animal?.animalId ?? u.Animal?.AnimalId);
@@ -75,20 +76,20 @@ const Logbook = () => {
                 setToken(tkn);
 
                 // load environments and animals
-                const envs = await apiCallGet(`http://10.0.2.2:5093/api/EnvironmentsAPI`, tkn) || [];
+                const envs = await apiCallGet(`/api/EnvironmentsAPI`, tkn) || [];
                 setEnvironments(envs.map(e => ({ id: e.environmentId ?? e.id ?? e.EnvironmentId, name: e.name ?? e.Name ?? '', raw: e })));
 
-                const animals = await apiCallGet(`http://10.0.2.2:5093/api/AnimalsAPI`, tkn) || [];
+                const animals = await apiCallGet(`/api/AnimalsAPI`, tkn) || [];
                 setAllBirds(animals);
 
                 // load user seen birds (UserAnimals)
                 if (uid) {
-                    const userAnimals = await apiCallGet(`http://10.0.2.2:5093/api/UserAnimalsAPI?userId=${uid}`, tkn) || [];
+                    const userAnimals = await apiCallGet(`/api/UserAnimalsAPI?userId=${uid}`, tkn) || [];
                     const seen = new Set((userAnimals || []).filter(u => (u.timesSpotted ?? u.TimesSpotted ?? u.TimesSpotted ?? 0) > 0).map(u => String(u.animalId ?? u.AnimalId)));
                     setSeenSet(seen);
 
                     // load unlocked info
-                    const unlocked = await apiCallGet(`http://10.0.2.2:5093/api/UserAnimalInfoUnlockedAPI?userId=${uid}`, tkn) || [];
+                    const unlocked = await apiCallGet(`/api/UserAnimalInfoUnlockedAPI?userId=${uid}`, tkn) || [];
                     // normalize unlocked info keys
                     const normalizeKey = (s) => (String(s || '').replace(/[^a-z0-9]/gi, '').toLowerCase());
                     const map = {};
@@ -128,7 +129,7 @@ const Logbook = () => {
             return;
         }
         try {
-            const res = await apiCallGet(`http://10.0.2.2:5093/api/UserAnimalPhotosAPI?userId=${uid}&animalId=${animalId}`, tkn) || [];
+            const res = await apiCallGet(`/api/UserAnimalPhotosAPI?userId=${uid}&animalId=${animalId}`, tkn) || [];
             console.debug('[fetchPhotosForAnimal] raw response length:', Array.isArray(res) ? res.length : 'not-array', res && res.slice ? res.slice(0,3) : res);
 
             // Filter server results to only those that match the requested animalId (be defensive about field names)
@@ -202,7 +203,7 @@ const Logbook = () => {
                     style: 'destructive',
                     onPress: async () => {
                         try {
-                            const resp = await fetch(`http://10.0.2.2:5093/api/UserAnimalPhotosAPI/${photoId}`, {
+                            const resp = await fetch(apiUrl(`/api/UserAnimalPhotosAPI/${photoId}`), {
                                 method: 'DELETE',
                                 headers: {
                                     'Authorization': `Bearer ${token}`,
@@ -268,7 +269,11 @@ const Logbook = () => {
                             const aid = String(b.animalId ?? b.AnimalId);
                             const seen = seenSet.has(aid);
                             const displayName = seen ? (b.name ?? b.Name ?? 'Unknown') : '???';
-                            const imageSrc = seen ? ((typeof (b.imageUrl ?? b.ImageUrl) === 'string') ? { uri: (b.imageUrl ?? b.ImageUrl).startsWith('http') ? (b.imageUrl ?? b.ImageUrl) : `http://10.0.2.2:5093/img/animals/${b.imageUrl ?? b.ImageUrl}` } : (b.imageUrl ?? b.ImageUrl)) : placeholderImage;
+                            const imageSrc = seen
+                                ? ((typeof (b.imageUrl ?? b.ImageUrl) === 'string')
+                                    ? { uri: (b.imageUrl ?? b.ImageUrl).startsWith('http') ? (b.imageUrl ?? b.ImageUrl) : apiUrl(`/img/animals/${b.imageUrl ?? b.ImageUrl}`) }
+                                    : (b.imageUrl ?? b.ImageUrl))
+                                : placeholderImage;
 
                             return (
                                 <TouchableOpacity
@@ -302,7 +307,7 @@ const Logbook = () => {
                         <View style={styles.modalOverlay}>
                             <View style={styles.modalContent}>
                                 <View style={styles.modalTop}>
-                                    <Image source={typeof (modalBird?.imageUrl ?? modalBird?.ImageUrl) === 'string' ? { uri: (modalBird.imageUrl ?? modalBird.ImageUrl).startsWith('http') ? (modalBird.imageUrl ?? modalBird.ImageUrl) : `http://10.0.2.2:5093/img/animals/${modalBird.imageUrl ?? modalBird.ImageUrl}` } : (modalBird?.imageUrl ?? (modalBird?.ImageUrl || placeholderImage))} style={styles.modalImage} />
+                                    <Image source={typeof (modalBird?.imageUrl ?? modalBird?.ImageUrl) === 'string' ? { uri: (modalBird.imageUrl ?? modalBird.ImageUrl).startsWith('http') ? (modalBird.imageUrl ?? modalBird.ImageUrl) : apiUrl(`/img/animals/${modalBird.imageUrl ?? modalBird.ImageUrl}`) } : (modalBird?.imageUrl ?? (modalBird?.ImageUrl || placeholderImage))} style={styles.modalImage} />
                                     <View style={{ flex: 1, marginLeft: 12 }}>
                                         <Text style={styles.modalTitle}>{modalBird?.name ?? modalBird?.Name}</Text>
                                     </View>

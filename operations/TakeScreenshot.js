@@ -32,7 +32,7 @@ const takeScreenshot = async (viewRef, userId, currentBird) => {
       return tmpUri;
     }
 
-    // Save record to backend
+    // Save record to backend (use relative path; apiCallPost will call apiUrl)
     const token = await AsyncStorage.getItem("token");
     const payload = {
       UserId: userId,
@@ -40,8 +40,7 @@ const takeScreenshot = async (viewRef, userId, currentBird) => {
       PhotoUrl: destUri,
       DateUploaded: new Date().toISOString(),
     };
-    // console.debug("[takeScreenshot] payload", payload);
-    await apiCallPost(`http://10.0.2.2:5093/api/UserAnimalPhotosAPI`, token, payload);
+    await apiCallPost(`/api/UserAnimalPhotosAPI`, token, payload);
 
     return destUri;
   } catch (error) {

@@ -4,6 +4,7 @@ import { StyleSheet, Text, View, ImageBackground, TouchableOpacity, Button, Scro
 import { styles } from "./styles/gameStyles";
 import { colours } from "./styles/colourScheme";
 import { apiCallGet, apiCallPost, apiCallPut } from "./operations/ApiCalls";
+import { apiUrl } from "./operations/ApiConfig";
 import generateRandomQuestions from "./operations/GenerateQuestions";
 import takeScreenshot from "./operations/TakeScreenshot";
 import { evaluateAchievements } from "./operations/EvaluateAchievements";
@@ -243,15 +244,15 @@ const MainGame = () => {
             setUserId(uid);
             setToken(tkn);
 
-            const environmentData = await apiCallGet(`http://10.0.2.2:5093/api/EnvironmentsAPI`, tkn);
+            const environmentData = await apiCallGet(`/api/EnvironmentsAPI`, tkn);
 
             // NEW: fetch spawn locations (many-to-many now). We'll build a map animalId => [spawnLocations]
             // try multiple possible endpoints / shapes and log results so we can see what's returned
-            let spawnLocationsRaw = await apiCallGet(`http://10.0.2.2:5093/api/SpawnLocationsAPI`, tkn);
+            let spawnLocationsRaw = await apiCallGet(`/api/SpawnLocationsAPI`, tkn);
             // console.log('spawnFetchAttempt 1 ->', Array.isArray(spawnLocationsRaw) ? `array(${spawnLocationsRaw.length})` : typeof spawnLocationsRaw, spawnLocationsRaw);
             if (!spawnLocationsRaw || (Array.isArray(spawnLocationsRaw) && spawnLocationsRaw.length === 0)) {
                 // fallback to alternate route name
-                spawnLocationsRaw = await apiCallGet(`http://10.0.2.2:5093/api/SpawnLocations`, tkn);
+                spawnLocationsRaw = await apiCallGet(`/api/SpawnLocations`, tkn);
                 // console.log('spawnFetchAttempt 2 ->', Array.isArray(spawnLocationsRaw) ? `array(${spawnLocationsRaw.length})` : typeof spawnLocationsRaw, spawnLocationsRaw);
             }
 
@@ -299,14 +300,14 @@ const MainGame = () => {
  
             // console.log("spawnMap (keys):", Object.keys(spawnMap).slice(0,20), spawnMap);
 
-            const userData = uid ? await apiCallGet(`http://10.0.2.2:5093/api/UsersAPI/${uid}`, tkn) : null;
+            const userData = uid ? await apiCallGet(`/api/UsersAPI/${uid}`, tkn) : null;
 
-            const allAnimals = await apiCallGet(`http://10.0.2.2:5093/api/AnimalsAPI`, tkn);
+            const allAnimals = await apiCallGet(`/api/AnimalsAPI`, tkn);
             setAllBirds(allAnimals || []);
             
             // fetch achievement definitions once and store as map by id (for toasts)
             try {
-                const allAch = await apiCallGet(`http://10.0.2.2:5093/api/AchievementsAPI`, tkn) || [];
+                const allAch = await apiCallGet(`/api/AchievementsAPI`, tkn) || [];
                 const map = {};
                 (allAch || []).forEach(a => {
                     const id = String(a.achievementId ?? a.AchievementId ?? a.id ?? a.Id);
@@ -345,14 +346,14 @@ const MainGame = () => {
     Bird fetching per environment
     */
 
-    const IMAGE_BASE_URL = 'http://10.0.2.2:5093/img/animals/';
+    const IMAGE_BASE_URL = apiUrl('/img/animals/');
 
     // spawnMapOverride: optional map built locally (used to avoid reading stale state immediately after setSpawnData)
     const fetchBirds = async (environmentId, tkn = token, spawnMapOverride = null) => {
         try {
             if (!environmentId) return;
             // console.log('fetchBirds called with environmentId:', environmentId, ' token:', !!tkn);
-            const birdsData = await apiCallGet(`http://10.0.2.2:5093/api/AnimalsAPI?environmentId=${environmentId}`, tkn);
+            const birdsData = await apiCallGet(`/api/AnimalsAPI?environmentId=${environmentId}`, tkn);
 
             const birdsForEnv = (birdsData || []).filter(b => String(b.environmentId ?? b.EnvironmentId) === String(environmentId));
 
@@ -491,7 +492,7 @@ const MainGame = () => {
         try {
             // Check if the bird has been spotted before
             const spottedData = userId
-                ? await apiCallGet(`http://10.0.2.2:5093/api/UserAnimalsAPI?userId=${userId}&animalId=${currentBird.AnimalId}`, token)
+                ? await apiCallGet(`/api/UserAnimalsAPI?userId=${userId}&animalId=${currentBird.AnimalId}`, token)
                 : [];
 
             const isSpotted = (spottedData && spottedData.length > 0);
@@ -551,7 +552,7 @@ const MainGame = () => {
 
             // Save to UserAnimals table
             if (userId) {
-                const rawSpotted = await apiCallGet(`http://10.0.2.2:5093/api/UserAnimalsAPI?userId=${userId}&animalId=${currentBird.AnimalId}`, token);
+                const rawSpotted = await apiCallGet(`/api/UserAnimalsAPI?userId=${userId}&animalId=${currentBird.AnimalId}`, token);
                 // defensively find a matching record (handle different casing/shapes)
                 const existing = (rawSpotted || []).find(s =>
                     String(s.userId ?? s.UserId) === String(userId) &&
@@ -564,7 +565,7 @@ const MainGame = () => {
                         AnimalId: currentBird.AnimalId,
                         TimesSpotted: 1,
                     };
-                    await apiCallPost(`http://10.0.2.2:5093/api/UserAnimalsAPI`, token, payload);
+                    await apiCallPost(`/api/UserAnimalsAPI`, token, payload);
                     // checks if any achievements unlocked
                     const awarded = await evaluateAchievements(userId, currentBird.AnimalId, token);
                     if (awarded && awarded.length > 0) {
@@ -582,7 +583,7 @@ const MainGame = () => {
                     }
                 } else {
                     const id = existing.userAnimalId ?? existing.UserAnimalId ?? existing.userAnimalID ?? existing.UserAnimalID;
-                    await apiCallPut(`http://10.0.2.2:5093/api/UserAnimalsAPI/${id}`, token, {
+                    await apiCallPut(`/api/UserAnimalsAPI/${id}`, token, {
                         TimesSpotted: (existing.timesSpotted ?? existing.TimesSpotted ?? 0) + 1,
                     });
                     const awarded = await evaluateAchievements(userId, currentBird.AnimalId, token);

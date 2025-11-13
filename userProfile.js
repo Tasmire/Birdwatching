@@ -30,7 +30,7 @@ const UserProfile = ({ onLogout }) => {
             const userId = parsedUserData.userId; // Get the userId of the logged-in user
             const token = parsedUserData.token;
 
-            const data = await apiCallGet(`http://10.0.2.2:5093/api/UsersAPI/${userId}`, token);
+            const data = await apiCallGet(`/api/UsersAPI/${userId}`, token);
             console.log(data);
 
             setUserData(data);
@@ -53,14 +53,14 @@ const UserProfile = ({ onLogout }) => {
     // fetch achievements + stats
     const fetchAchievementsForProfile = async (uid, token, setUserAchievements, setMasterAchievements) => {
         try {
-            const userAch = await apiCallGet(`http://10.0.2.2:5093/api/UserAchievementsAPI?userId=${uid}`, token);
-            const allAch = await apiCallGet(`http://10.0.2.2:5093/api/AchievementsAPI`, token);
+            const userAch = await apiCallGet(`/api/UserAchievementsAPI?userId=${uid}`, token);
+            const allAch = await apiCallGet(`/api/AchievementsAPI`, token);
             setUserAchievements(userAch || []);
             setMasterAchievements(allAch || []);
 
             // fetch stats: all user achievements (no userId) and user count
-            const allUserAch = await apiCallGet(`http://10.0.2.2:5093/api/UserAchievementsAPI`, token) || [];
-            const users = await apiCallGet(`http://10.0.2.2:5093/api/UsersAPI`, token) || [];
+            const allUserAch = await apiCallGet(`/api/UserAchievementsAPI`, token) || [];
+            const users = await apiCallGet(`/api/UsersAPI`, token) || [];
             const uCount = Array.isArray(users) ? users.length : 0;
             setTotalUsers(uCount);
 

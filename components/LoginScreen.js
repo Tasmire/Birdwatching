@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, Alert, ImageBackground } from 
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { styles } from "../styles/gameStyles";
+import { apiUrl } from "../operations/ApiConfig";
 
 const LoginScreen = ({ navigation, onLogin }) => {
     const [username, setUsername] = useState("");
@@ -10,7 +11,7 @@ const LoginScreen = ({ navigation, onLogin }) => {
 
     const handleLogin = async () => {
         try {
-            const response = await fetch("http://10.0.2.2:5093/api/UsersAPI/login", {
+            const response = await fetch(apiUrl("/api/UsersAPI/login"), {
                 method: "POST",
                 headers: {
                     Accept: "application/json",

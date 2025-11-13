@@ -55,4 +55,27 @@ export const styles = StyleSheet.create({
     answerButtonText: { color: colours.offWhite, fontSize: 16, textAlign: 'center', },
     correctAnswerButton: { backgroundColor: withAlpha(colours.accentYellow, 0.9), },
     incorrectAnswerButton: { backgroundColor: withAlpha(colours.accentRed, 0.9), },
+    //achievement styles
+    achievementItem: { flexDirection: 'column', backgroundColor: withAlpha(colours.darkGreen, 0.8), borderRadius: 10, padding: 12, marginBottom: 12, width: '100%', },
+    achievementTopRow: { flexDirection: 'row', alignItems: 'center', width: '100%' },
+    achievementBadge: { width: 60, height: 60, justifyContent: 'center', alignItems: 'center', marginRight: 12, },
+    achievementTextContainer: { flex: 1, justifyContent: 'center', },
+    achievementTitle: { fontSize: 18, fontWeight: 'bold', color: colours.lightGreen, marginBottom: 4, },
+    achievementDescription: { fontSize: 14, color: colours.offWhite, marginBottom: 8, },
+    achievementStatsRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8, width: '100%', },
+    achievementDate: { fontSize: 12, color: colours.lightGreen, },
+    achievementPercent: { fontSize: 12, color: colours.lightGreen, },
+    //logbook styles
+    logbookBirdGrid: { flexDirection: 'column', flexWrap: 'wrap', justifyContent: 'center', marginTop: 12, },
+    logbookBirdCard: { width: '100%', height: 45, margin: 8, alignItems: 'left', flexDirection: 'row', gap: 16, },
+    logbookBirdImage: { width: 40, height: 40, borderRadius: 8, },
+    logbookBirdName: { marginTop: 8, fontSize: 16, color: colours.darkGreen, textAlign: 'center', },
+    logbookPageControls: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 16, paddingHorizontal: 32, },
+    logbookPageButton: { padding: 8, },
+    logbookPageButtonText: { fontSize: 18, color: colours.darkGreen, fontWeight: 'bold', },
+    //modal styles
+    modalOverlay: { flex: 1, backgroundColor: withAlpha(colours.darkOverlay, 0.9), justifyContent: 'center', alignItems: 'center', padding: 16, },
+    modalContent: { backgroundColor: colours.offWhite, borderRadius: 10, padding: 16, width: '100%', maxWidth: 400, },
+    modalTop: { flexDirection: 'row', marginBottom: 16, },
+    modalImage: { width: 100, height: 100, borderRadius: 8, },
 });

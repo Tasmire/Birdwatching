@@ -18,6 +18,8 @@ import { library } from '@fortawesome/fontawesome-svg-core';
 import { fas } from '@fortawesome/free-solid-svg-icons';
 import { far } from '@fortawesome/free-regular-svg-icons';
 import { fab } from '@fortawesome/free-brands-svg-icons';
+import { useFonts, InclusiveSans_400Regular, InclusiveSans_700Bold } from '@expo-google-fonts/inclusive-sans';
+import { IndieFlower_400Regular } from '@expo-google-fonts/indie-flower';
 import PropTypes from 'prop-types';
 import Toast, { BaseToast, ErrorToast } from 'react-native-toast-message';
 
@@ -111,6 +113,16 @@ MainTabs.propTypes = {
 const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  const [fontsLoaded] = useFonts({
+    InclusiveSans_400Regular,
+    InclusiveSans_700Bold,
+    IndieFlower_400Regular,
+  });
+
+  if (!fontsLoaded) {
+    return null;
+  }
 
   useEffect(() => {
     const checkLoginStatus = async () => {

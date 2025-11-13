@@ -6,6 +6,7 @@ import { colours } from "./styles/colourScheme";
 import { apiCallGet, apiCallPost, apiCallPut } from "./operations/ApiCalls";
 import generateRandomQuestions from "./operations/GenerateQuestions";
 import takeScreenshot from "./operations/TakeScreenshot";
+import { evaluateAchievements } from "./operations/EvaluateAchievements";
 import { RandomAnswerOptions } from "./utilities/RandomAnswerOptions";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Toast from 'react-native-toast-message';
@@ -492,11 +493,22 @@ const MainGame = () => {
                         TimesSpotted: 1,
                     };
                     await apiCallPost(`http://10.0.2.2:5093/api/UserAnimalsAPI`, token, payload);
+                    // checks if any achievements unlocked
+                    const awarded = await evaluateAchievements(userId, currentBird.AnimalId, token);
+                    if (awarded && awarded.length > 0) {
+                        awarded.forEach(a => {
+                            Toast.show({ type: 'success', text1: 'Achievement unlocked!', text2: `You earned an achievement.`, position: 'top' });
+                        });
+                    }
                 } else {
                     const id = existing.userAnimalId ?? existing.UserAnimalId ?? existing.userAnimalID ?? existing.UserAnimalID;
                     await apiCallPut(`http://10.0.2.2:5093/api/UserAnimalsAPI/${id}`, token, {
                         TimesSpotted: (existing.timesSpotted ?? existing.TimesSpotted ?? 0) + 1,
                     });
+                    const awarded = await evaluateAchievements(userId, currentBird.AnimalId, token);
+                    if (awarded && awarded.length > 0) {
+                        awarded.forEach(a => Toast.show({ type: 'success', text1: 'Achievement unlocked!', text2: `You earned an achievement.`, position: 'top' }));
+                    }
                 }
             }
 
@@ -533,6 +545,17 @@ const MainGame = () => {
                     };
                     // console.log('DEBUG: posting unlock payload', payload);
                     await apiCallPost(`http://10.0.2.2:5093/api/UserAnimalInfoUnlockedAPI`, token, payload);
+                    const awarded = await evaluateAchievements(userId, currentBird.AnimalId, token);
+                    if (awarded && awarded.length > 0) {
+                        awarded.forEach(a => {
+                            Toast.show({
+                                type: 'success',
+                                text1: 'Achievement unlocked!',
+                                text2: 'Check your profile to view it.',
+                                position: 'top'
+                            });
+                        });
+                    }
                 } catch (err) {
                     console.error("Error posting unlock:", err);
                 }

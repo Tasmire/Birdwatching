@@ -28,6 +28,7 @@ export const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: 'transparent', alignItems: 'center', justifyContent: 'center', padding: 20, },
     containerNoPadding: { flex: 1, backgroundColor: 'transparent', alignItems: 'center', justifyContent: 'center', },
     backgroundDark: { backgroundColor: colours.darkOverlay },
+    backgroundDarker: { backgroundColor: colours.darkerOverlay },
     backgroundLight: { backgroundColor: colours.lightOverlay },
     scrollViewContainer: { flexGrow: 1, },
     viewContainer: { flex: 1, padding: 16, justifyContent: 'space-between', },
@@ -95,4 +96,9 @@ export const styles = StyleSheet.create({
     galleryGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', },
     galleryThumb: { flex: 1, maxWidth: '48%', aspectRatio: 1, borderRadius: 8, backgroundColor: '#000', margin: 6, overflow: 'hidden' },
     galleryThumbImage: { width: '100%', height: '100%', backgroundColor: 'transparent', },
+    //about game styles
+    paragraph: { fontSize: 16, marginBottom: 12, lineHeight: 22, fontFamily: 'InclusiveSans_400Regular', textAlign: 'center' },
+    creditsContainer: { marginTop: 40, marginBottom: 40, borderTopWidth: 1, borderTopColor: withAlpha(colours.offWhite, 0.3), paddingTop: 20, },
+    creditsTitle: { fontSize: 28, fontWeight: 'bold', marginBottom: 16, textAlign: 'center', fontFamily: 'InclusiveSans_700Bold' },
+    creditsText: { fontSize: 16, marginBottom: 8, textAlign: 'center', fontFamily: 'InclusiveSans_400Regular' },
 });

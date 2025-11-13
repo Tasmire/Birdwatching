@@ -14,7 +14,6 @@ import { apiUrl } from "./operations/ApiConfig";
 const { width: windowWidth, height: windowHeight } = Dimensions.get('window');
 
 const infoFields = [
-    { prop: 'name', label: 'Name' },
     { prop: 'maoriName', label: 'Maori name' },
     { prop: 'scientificName', label: 'Scientific name' },
     { prop: 'averageSize', label: 'Average size' },
@@ -22,6 +21,20 @@ const infoFields = [
     { prop: 'diet', label: 'Diet' },
     { prop: 'origin', label: 'Origin' },
 ];
+
+function normalizeInfoKey(raw) {
+    if (!raw) return '';
+    const k = String(raw).replace(/[^a-z0-9]/gi, '').toLowerCase();
+    if (k.includes('maori')) return 'maoriName';
+    if (k.includes('scientific')) return 'scientificName';
+    if (k.includes('average') || k.includes('size')) return 'averageSize';
+    if (k.includes('habitat')) return 'habitat';
+    if (k.includes('diet')) return 'diet';
+    if (k.includes('origin')) return 'origin';
+    if (k.includes('image')) return 'imageUrl';
+    if (k.includes('name')) return 'name';
+    return k;
+}
 
 const Logbook = () => {
     const isFocused = useIsFocused();
@@ -49,9 +62,11 @@ const Logbook = () => {
             const unlocked = await apiCallGet(`/api/UserAnimalInfoUnlockedAPI?userId=${uid}`, tkn) || [];
             const map = {};
             (unlocked || []).forEach(u => {
-                const aid = String(u.animalId ?? u.AnimalId ?? u.Animal?.animalId ?? u.Animal?.AnimalId);
+                const rowUser = String(u.userId ?? u.UserId ?? '');
+                if (uid && rowUser && rowUser !== String(uid)) return; // defensive
+                const aid = String(u.animalId ?? u.AnimalId ?? u.animal?.animalId ?? u.Animal?.AnimalId);
                 const rawInfo = (u.infoType ?? u.InfoType ?? u.infoKey ?? u.InfoKey ?? '').toString();
-                const infoKey = normalizeKey(rawInfo);
+                const infoKey = normalizeInfoKey(rawInfo);
                 const isUnlocked = (u.isUnlocked ?? u.IsUnlocked ?? true);
                 if (!aid || !infoKey) return;
                 const aKey = String(aid);
@@ -242,6 +257,26 @@ const Logbook = () => {
             fetchUnlockedForUser(userId, token);
         });
         return () => sub.remove();
+    }, [userId, token]);
+
+    // Update seenSet immediately when a bird is spotted elsewhere in the app
+    useEffect(() => {
+        const sub2 = DeviceEventEmitter.addListener('userSpotted', (data) => {
+            try {
+                if (!data || !data.animalId) return;
+                const aid = String(data.animalId);
+                setSeenSet(prev => {
+                    const next = new Set(prev || []);
+                    next.add(aid);
+                    return next;
+                });
+                // refresh unlocked info as well (optional)
+                if (userId) fetchUnlockedForUser(userId, token);
+            } catch (e) {
+                console.warn('userSpotted handler error', e);
+            }
+        });
+        return () => sub2.remove();
     }, [userId, token]);
 
     if (loading) {

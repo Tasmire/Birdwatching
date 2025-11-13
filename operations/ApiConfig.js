@@ -9,12 +9,12 @@ export const Environments = {
 
 const BASE_URLS = {
   [Environments.ANDROID_EMULATOR]: "http://10.0.2.2:5093",
-  [Environments.LOCAL_DEVICE]: "http://127.0.0.1:5093",
+  [Environments.LOCAL_DEVICE]: "http://10.10.10.80:5093",
   [Environments.PRODUCTION]: "https://api.example.com", // placeholder URL
 };
 
 // Choose default environment here (change to ANDROID_EMULATOR, LOCAL_DEVICE or PRODUCTION)
-let currentEnv = Environments.ANDROID_EMULATOR;
+let currentEnv = Environments.LOCAL_DEVICE;
 export const API_ENV_KEY = "apiEnv";
 
 /**

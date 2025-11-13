@@ -22,6 +22,20 @@ import Animated, { useSharedValue, useAnimatedStyle, withDecay, withTiming } fro
 
 library.add(fas, far, fab);
 
+function normalizeInfoKey(raw) {
+    if (!raw) return '';
+    const k = String(raw).replace(/[^a-z0-9]/gi, '').toLowerCase();
+    if (k.includes('maori')) return 'maoriName';
+    if (k.includes('scientific')) return 'scientificName';
+    if (k.includes('average') || k.includes('size')) return 'averageSize';
+    if (k.includes('habitat')) return 'habitat';
+    if (k.includes('diet')) return 'diet';
+    if (k.includes('origin')) return 'origin';
+    if (k.includes('image')) return 'imageUrl';
+    if (k.includes('name')) return 'name';
+    return k;
+}
+
 const MainGame = () => {
 
     /*
@@ -566,11 +580,16 @@ const MainGame = () => {
                         TimesSpotted: 1,
                     };
                     await apiCallPost(`/api/UserAnimalsAPI`, token, payload);
+                    // notify logbook / other screens that a bird has been spotted
+                    DeviceEventEmitter.emit('userSpotted', { animalId: String(currentBird.AnimalId) });
                     // checks if any achievements unlocked
-                    const awarded = await evaluateAchievements(userId, currentBird.AnimalId, token);
-                    if (awarded && awarded.length > 0) {
-                        awarded.forEach(ua => {
-                            const aid = String(ua.achievementId ?? ua.AchievementId ?? ua.Achievement);
+                    const _awardedRaw = await evaluateAchievements(userId, currentBird.AnimalId, token);
+                    const _awarded = Array.isArray(_awardedRaw) ? _awardedRaw : (_awardedRaw ? [_awardedRaw] : []);
+                    // filter to only entries that actually contain an achievement identifier
+                    const validAwards = (_awarded || []).filter(ua => ua && (ua.achievementId ?? ua.AchievementId ?? ua.Achievement ?? ua.id ?? ua.Id));
+                    if (validAwards.length > 0) {
+                        validAwards.forEach(ua => {
+                            const aid = String(ua.achievementId ?? ua.AchievementId ?? ua.Achievement ?? ua.id ?? ua.Id);
                             const def = achievementsMap[String(aid)] ?? achievementsMap[String(aid).toLowerCase?.()] ?? null;
                             Toast.show({
                                 type: 'success',
@@ -586,9 +605,13 @@ const MainGame = () => {
                     await apiCallPut(`/api/UserAnimalsAPI/${id}`, token, {
                         TimesSpotted: (existing.timesSpotted ?? existing.TimesSpotted ?? 0) + 1,
                     });
-                    const awarded = await evaluateAchievements(userId, currentBird.AnimalId, token);
-                    if (awarded && awarded.length > 0) {
-                        awarded.forEach(a => Toast.show({ type: 'success', text1: 'Achievement unlocked!', text2: `Check your profile to view it.`, position: 'top' }));
+                    // notify logbook that spotting count changed
+                    DeviceEventEmitter.emit('userSpotted', { animalId: String(currentBird.AnimalId) });
+                    const _awardedRaw2 = await evaluateAchievements(userId, currentBird.AnimalId, token);
+                    const _awarded2 = Array.isArray(_awardedRaw2) ? _awardedRaw2 : (_awardedRaw2 ? [_awardedRaw2] : []);
+                    const validAwards2 = (_awarded2 || []).filter(ua => ua && (ua.achievementId ?? ua.AchievementId ?? ua.Achievement ?? ua.id ?? ua.Id));
+                    if (validAwards2.length > 0) {
+                        validAwards2.forEach(a => Toast.show({ type: 'success', text1: 'Achievement unlocked!', text2: `Check your profile to view it.`, position: 'top' }));
                     }
                 }
             }
@@ -654,28 +677,40 @@ const MainGame = () => {
                     const payload = {
                         UserId: userId,
                         AnimalId: currentBird.AnimalId,
-                        InfoType: q.infoType,
+                        InfoType: normalizeInfoKey(q.infoType),
                         IsUnlocked: true,
                     };
                     console.log('Posting unlock payload:', payload);
-                    const res = await apiCallPost(`http://10.0.2.2:5093/api/UserAnimalInfoUnlockedAPI`, token, payload);
+                    const res = await apiCallPost(`/api/UserAnimalInfoUnlockedAPI`, token, payload);
                     console.log('UserAnimalInfoUnlocked POST result:', res);
                     // notify other screens
                     DeviceEventEmitter.emit('userInfoUnlocked', { animalId: String(currentBird.AnimalId), infoType: q.infoType });
-                    const awarded = await evaluateAchievements(userId, currentBird.AnimalId, token);
-                    if (awarded && awarded.length > 0) {
-                        awarded.forEach(ua => {
-                            const aid = String(ua.achievementId ?? ua.AchievementId ?? ua.Achievement);
-                            const def = achievementsMap[String(aid)] ?? achievementsMap[String(aid).toLowerCase?.()] ?? null;
-                            Toast.show({
-                                type: 'success',
-                                text1: def?.title ?? 'Achievement unlocked!',
-                                text2: def?.description ?? 'Check your profile to view it.',
-                                position: 'top',
-                                visibilityTime: 4000
-                            });
-                        });
-                    }
+                    // also emit userSpotted in case the spot was not recorded elsewhere
+                    DeviceEventEmitter.emit('userSpotted', { animalId: String(currentBird.AnimalId) });
+ 
+                    // ensure the evaluation endpoint receives the AnimalId so UnlockedInfoForAnimal criteria can be evaluated
+                    // option A: call the evaluation API directly with AnimalId
+                    const evalRes = await apiCallPost(`/api/AchievementEvaluation/evaluate`, token, {
+                        UserId: userId,
+                        AnimalId: currentBird.AnimalId,
+                        EventType: 'UnlockedInfo'
+                    }).catch(e => { console.warn('achievement evaluate API error', e); return null; });
+                    const _awardedRaw = evalRes ?? await evaluateAchievements(userId, currentBird.AnimalId, token);
+                     const _awarded = Array.isArray(_awardedRaw) ? _awardedRaw : (_awardedRaw ? [_awardedRaw] : []);
+                     const validAwards3 = (_awarded || []).filter(ua => ua && (ua.achievementId ?? ua.AchievementId ?? ua.Achievement ?? ua.id ?? ua.Id));
+                     if (validAwards3.length > 0) {
+                         validAwards3.forEach(ua => {
+                             const aid = String(ua.achievementId ?? ua.AchievementId ?? ua.Achievement ?? ua.id ?? ua.Id);
+                             const def = achievementsMap[String(aid)] ?? achievementsMap[String(aid).toLowerCase?.()] ?? null;
+                             Toast.show({
+                                 type: 'success',
+                                 text1: def?.title ?? 'Achievement unlocked!',
+                                 text2: def?.description ?? 'Check your profile to view it.',
+                                 position: 'top',
+                                 visibilityTime: 4000
+                             });
+                         });
+                     }
                 } catch (err) {
                     console.error("Error posting unlock:", err);
                 }

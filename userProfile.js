@@ -16,6 +16,7 @@ const UserProfile = ({ onLogout }) => {
     const [allAchievements, setAllAchievements] = useState([]);
     const [achievementPercentages, setAchievementPercentages] = useState({});
     const [totalUsers, setTotalUsers] = useState(0);
+    const [token, setToken] = useState(null);
     const navigation = useNavigation();
 
     const fetchUserData = async () => {
@@ -28,13 +29,22 @@ const UserProfile = ({ onLogout }) => {
             }
 
             const userId = parsedUserData.userId; // Get the userId of the logged-in user
-            const token = parsedUserData.token;
+            const tokenFromStore = parsedUserData.token;
+            setToken(tokenFromStore);
 
-            const data = await apiCallGet(`/api/UsersAPI/${userId}`, token);
+            const data = await apiCallGet(`/api/UsersAPI/${userId}`, tokenFromStore);
             console.log(data);
 
-            setUserData(data);
-            await fetchAchievementsForProfile(userId, token, setUserAchievements, setAllAchievements);
+            // normalize server response keys to a consistent shape used by the UI
+            const normalized = {
+                userId: data.userId ?? data.UserId ?? data.id ?? data.Id ?? userId,
+                username: data.username ?? data.Username ?? data.displayName ?? data.DisplayName ?? data.Email ?? '',
+                email: data.email ?? data.Email ?? '',
+                raw: data,
+            };
+            setUserData(normalized);
+
+            await fetchAchievementsForProfile(userId, tokenFromStore, setUserAchievements, setAllAchievements);
         } catch (error) {
             console.error('Error fetching user data:', error);
         }
@@ -51,12 +61,12 @@ const UserProfile = ({ onLogout }) => {
     };
 
     // fetch achievements + stats
-    const fetchAchievementsForProfile = async (uid, token, setUserAchievements, setMasterAchievements) => {
+    const fetchAchievementsForProfile = async (uid, token, setUserAchievements, setAllAchievements) => {
         try {
             const userAch = await apiCallGet(`/api/UserAchievementsAPI?userId=${uid}`, token);
             const allAch = await apiCallGet(`/api/AchievementsAPI`, token);
             setUserAchievements(userAch || []);
-            setMasterAchievements(allAch || []);
+            setAllAchievements(allAch || []);
 
             // fetch stats: all user achievements (no userId) and user count
             const allUserAch = await apiCallGet(`/api/UserAchievementsAPI`, token) || [];
@@ -86,6 +96,54 @@ const UserProfile = ({ onLogout }) => {
     useEffect(() => {
         fetchUserData();
     }, []);
+
+    // Temporary debug helper: re-evaluate achievements for this user.
+    const reevaluateAchievementsForUser = async () => {
+        try {
+            const uid = userData?.userId ?? null;
+            if (!uid || !token) {
+                Alert.alert('Cannot re-evaluate', 'Missing userId or token.');
+                return;
+            }
+
+            // Prefer animals the user already has unlocked info for
+            let unlocked = await apiCallGet(`/api/UserAnimalInfoUnlockedAPI?userId=${uid}`, token).catch(() => []);
+            let animalIds = Array.from(new Set((unlocked || []).map(u => String(u.animalId ?? u.AnimalId ?? u.animal?.animalId ?? u.Animal?.animalId)).filter(Boolean)));
+
+            // If none found, fall back to all animals
+            if (animalIds.length === 0) {
+                const animals = await apiCallGet(`/api/AnimalsAPI`, token) || [];
+                animalIds = (animals || []).map(a => String(a.animalId ?? a.AnimalId)).filter(Boolean);
+            }
+
+            if (animalIds.length === 0) {
+                Alert.alert('No animals', 'No animals found to re-evaluate.');
+                return;
+            }
+
+            let awardedAll = [];
+            for (const aid of animalIds) {
+                const res = await apiCallPost(`/api/AchievementEvaluation/evaluate`, token, {
+                    UserId: uid,
+                    AnimalId: aid,
+                    EventType: 'Reevaluate'
+                }).catch(e => { console.warn('evaluate error for', aid, e); return null; });
+                if (res && Array.isArray(res) && res.length) awardedAll.push(...res);
+            }
+
+            if (awardedAll.length > 0) {
+                Alert.alert('Achievements awarded', `${awardedAll.length} new achievement(s) granted.`);
+            } else {
+                Alert.alert('No new achievements', 'No achievements awarded on re-evaluation.');
+            }
+
+            // refresh achievements shown on profile
+            await fetchAchievementsForProfile(uid, token, setUserAchievements, setAllAchievements);
+        } catch (err) {
+            console.error('reevaluateAchievementsForUser', err);
+            Alert.alert('Error', 'Could not re-evaluate achievements.');
+        }
+    };
 
     const mergedAchievements = (userAchievements || []).map((ua, idx) => {
         const def = (allAchievements || []).find(a =>
@@ -119,6 +177,9 @@ const UserProfile = ({ onLogout }) => {
                     <View>
                         <Text style={[styles.title, styles.lighterText, styles.topMargin]}>Profile</Text>
                         <Text style={[styles.subtitle, styles.lighterText]}>{userData.username}</Text>
+                        <TouchableOpacity onPress={reevaluateAchievementsForUser} style={[styles.button, { alignSelf: 'center', marginBottom: 12 }]}>
+                            <Text style={styles.buttonText}>Re-evaluate achievements</Text>
+                        </TouchableOpacity>
                         {/* <Text style={[styles.subtitle, styles.lighterText]}>Achievements:</Text> */}
                         <View>
                             {sortedAchievements.length === 0 ? (

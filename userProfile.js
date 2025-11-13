@@ -177,9 +177,9 @@ const UserProfile = ({ onLogout }) => {
                     <View>
                         <Text style={[styles.title, styles.lighterText, styles.topMargin]}>Profile</Text>
                         <Text style={[styles.subtitle, styles.lighterText]}>{userData.username}</Text>
-                        <TouchableOpacity onPress={reevaluateAchievementsForUser} style={[styles.button, { alignSelf: 'center', marginBottom: 12 }]}>
+                        {/* <TouchableOpacity onPress={reevaluateAchievementsForUser} style={[styles.button, { alignSelf: 'center', marginBottom: 12 }]}>
                             <Text style={styles.buttonText}>Re-evaluate achievements</Text>
-                        </TouchableOpacity>
+                        </TouchableOpacity> */}
                         {/* <Text style={[styles.subtitle, styles.lighterText]}>Achievements:</Text> */}
                         <View>
                             {sortedAchievements.length === 0 ? (

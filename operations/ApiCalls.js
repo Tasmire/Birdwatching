@@ -36,7 +36,9 @@ const apiCallPost = async (url, token, body) => {
             body: bodyText,
         });
 
-        // capture response text for logging / error inspection
+        // DEBUG: log status and content-type
+        console.log('API POST response status', response.status, 'headers.content-type=', response.headers.get('content-type'));
+
         const responseText = await response.text().catch(() => "<no body>");
         let parsedResponse;
         try { parsedResponse = JSON.parse(responseText); } catch { parsedResponse = responseText; }

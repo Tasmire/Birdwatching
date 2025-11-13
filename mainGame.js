@@ -684,34 +684,29 @@ const MainGame = () => {
                     console.log('Posting unlock payload:', payload);
                     const res = await apiCallPost(`/api/UserAnimalInfoUnlockedAPI`, token, payload);
                     console.log('UserAnimalInfoUnlocked POST result:', res);
+
+                    // DEBUG: show token + call evaluate and log full response / errors
+                    console.log('[DEBUG] token present for evaluate:', !!token, 'userId:', userId);
+                    console.log('[DEBUG] raw token:', token);
+                    try {
+                        const evalPayload = { UserId: userId, AnimalId: currentBird.AnimalId, EventType: 'UnlockedInfo' };
+                        console.log('[DEBUG] calling AchievementEvaluation/evaluate with', evalPayload);
+                        const evalRes = await apiCallPost(`/api/AchievementEvaluation/evaluate`, token, evalPayload);
+                        console.log('[DEBUG] evaluate response (raw):', evalRes);
+                        // handle awards
+                        const _awardedRaw = evalRes ?? await evaluateAchievements(userId, currentBird.AnimalId, token);
+                        console.log('[DEBUG] _awardedRaw:', _awardedRaw);
+                        const _awarded = Array.isArray(_awardedRaw) ? _awardedRaw : (_awardedRaw ? [_awardedRaw] : []);
+                        console.log('[DEBUG] normalized awards array:', _awarded);
+                    } catch (evalErr) {
+                        console.error('[DEBUG] evaluate POST error:', evalErr);
+                    }
+
                     // notify other screens
                     DeviceEventEmitter.emit('userInfoUnlocked', { animalId: String(currentBird.AnimalId), infoType: q.infoType });
                     // also emit userSpotted in case the spot was not recorded elsewhere
                     DeviceEventEmitter.emit('userSpotted', { animalId: String(currentBird.AnimalId) });
  
-                    // ensure the evaluation endpoint receives the AnimalId so UnlockedInfoForAnimal criteria can be evaluated
-                    // option A: call the evaluation API directly with AnimalId
-                    const evalRes = await apiCallPost(`/api/AchievementEvaluation/evaluate`, token, {
-                        UserId: userId,
-                        AnimalId: currentBird.AnimalId,
-                        EventType: 'UnlockedInfo'
-                    }).catch(e => { console.warn('achievement evaluate API error', e); return null; });
-                    const _awardedRaw = evalRes ?? await evaluateAchievements(userId, currentBird.AnimalId, token);
-                     const _awarded = Array.isArray(_awardedRaw) ? _awardedRaw : (_awardedRaw ? [_awardedRaw] : []);
-                     const validAwards3 = (_awarded || []).filter(ua => ua && (ua.achievementId ?? ua.AchievementId ?? ua.Achievement ?? ua.id ?? ua.Id));
-                     if (validAwards3.length > 0) {
-                         validAwards3.forEach(ua => {
-                             const aid = String(ua.achievementId ?? ua.AchievementId ?? ua.Achievement ?? ua.id ?? ua.Id);
-                             const def = achievementsMap[String(aid)] ?? achievementsMap[String(aid).toLowerCase?.()] ?? null;
-                             Toast.show({
-                                 type: 'success',
-                                 text1: def?.title ?? 'Achievement unlocked!',
-                                 text2: def?.description ?? 'Check your profile to view it.',
-                                 position: 'top',
-                                 visibilityTime: 4000
-                             });
-                         });
-                     }
                 } catch (err) {
                     console.error("Error posting unlock:", err);
                 }

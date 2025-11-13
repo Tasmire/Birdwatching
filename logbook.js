@@ -103,15 +103,13 @@ const Logbook = () => {
                     const seen = new Set((userAnimals || []).filter(u => (u.timesSpotted ?? u.TimesSpotted ?? u.TimesSpotted ?? 0) > 0).map(u => String(u.animalId ?? u.AnimalId)));
                     setSeenSet(seen);
 
-                    // load unlocked info
+                    // load unlocked info (use canonical normalizeInfoKey consistently)
                     const unlocked = await apiCallGet(`/api/UserAnimalInfoUnlockedAPI?userId=${uid}`, tkn) || [];
-                    // normalize unlocked info keys
-                    const normalizeKey = (s) => (String(s || '').replace(/[^a-z0-9]/gi, '').toLowerCase());
                     const map = {};
                     (unlocked || []).forEach(u => {
                         const aid = String(u.animalId ?? u.AnimalId ?? u.Animal?.animalId ?? u.Animal?.AnimalId);
                         const rawInfo = (u.infoType ?? u.InfoType ?? u.infoKey ?? u.InfoKey ?? '').toString();
-                        const infoKey = normalizeKey(rawInfo);
+                        const infoKey = normalizeInfoKey(rawInfo);
                         const isUnlocked = (u.isUnlocked ?? u.IsUnlocked ?? true);
                         if (!aid || !infoKey) return;
                         const aKey = String(aid);
@@ -353,8 +351,8 @@ const Logbook = () => {
                                         const rawProp = f.prop;
                                         const aid = String(modalBird?.animalId ?? modalBird?.AnimalId ?? '');
                                         const unlockedSet = unlockedMap[aid] || new Set();
-                                        const normalizeKey = (s) => (String(s || '').replace(/[^a-z0-9]/gi, '').toLowerCase());
-                                        const propKey = normalizeKey(rawProp);
+                                        // use canonical normalizer so keys match unlockedMap entries
+                                        const propKey = normalizeInfoKey(rawProp);
 
                                         const isUnlocked = unlockedSet.has(propKey);
 

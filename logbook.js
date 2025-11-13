@@ -45,6 +45,7 @@ const Logbook = () => {
     const [userId, setUserId] = useState(null);
     const [token, setToken] = useState(null);
     const [seenSet, setSeenSet] = useState(new Set());
+    const [userAnimalsMap, setUserAnimalsMap] = useState({});
     const [unlockedMap, setUnlockedMap] = useState({});
     const [modalBird, setModalBird] = useState(null);
     const [modalPhotos, setModalPhotos] = useState([]);
@@ -100,8 +101,16 @@ const Logbook = () => {
                 // load user seen birds (UserAnimals)
                 if (uid) {
                     const userAnimals = await apiCallGet(`/api/UserAnimalsAPI?userId=${uid}`, tkn) || [];
-                    const seen = new Set((userAnimals || []).filter(u => (u.timesSpotted ?? u.TimesSpotted ?? u.TimesSpotted ?? 0) > 0).map(u => String(u.animalId ?? u.AnimalId)));
+                    const seen = new Set((userAnimals || []).filter(u => (u.timesSpotted ?? u.TimesSpotted ?? 0) > 0).map(u => String(u.animalId ?? u.AnimalId)));
                     setSeenSet(seen);
+                    // build a lookup so we can show timesSpotted in the modal
+                    const uaMap = {};
+                    (userAnimals || []).forEach(u => {
+                        const aid = String(u.animalId ?? u.AnimalId ?? '');
+                        if (!aid) return;
+                        uaMap[aid] = u;
+                    });
+                    setUserAnimalsMap(uaMap);
 
                     // load unlocked info (use canonical normalizeInfoKey consistently)
                     const unlocked = await apiCallGet(`/api/UserAnimalInfoUnlockedAPI?userId=${uid}`, tkn) || [];
@@ -174,7 +183,10 @@ const Logbook = () => {
         if (!seenSet.has(aid)) return;
         // find full bird object from allBirds
         const full = (allBirds || []).find(a => String(a.animalId ?? a.AnimalId) === aid) || bird;
-        setModalBird(full);
+        // prefer timesSpotted from UserAnimals
+        const ua = userAnimalsMap[aid] ?? {};
+        const times = ua.timesSpotted ?? ua.TimesSpotted ?? full.timesSpotted ?? full.TimesSpotted ?? 0;
+        setModalBird({ ...full, timesSpotted: times, TimesSpotted: times });
         // fetch photos for this bird
         fetchPhotosForAnimal(aid, userId, token);
     };
@@ -343,6 +355,7 @@ const Logbook = () => {
                                     <Image source={typeof (modalBird?.imageUrl ?? modalBird?.ImageUrl) === 'string' ? { uri: (modalBird.imageUrl ?? modalBird.ImageUrl).startsWith('http') ? (modalBird.imageUrl ?? modalBird.ImageUrl) : apiUrl(`/img/animals/${modalBird.imageUrl ?? modalBird.ImageUrl}`) } : (modalBird?.imageUrl ?? (modalBird?.ImageUrl || placeholderImage))} style={styles.modalImage} />
                                     <View style={{ flex: 1, marginLeft: 12 }}>
                                         <Text style={styles.modalTitle}>{modalBird?.name ?? modalBird?.Name}</Text>
+                                        <Text style ={styles.modalSubtitle}>Times spotted: {modalBird?.timesSpotted ?? modalBird?.TimesSpotted}</Text>
                                     </View>
                                 </View>
 

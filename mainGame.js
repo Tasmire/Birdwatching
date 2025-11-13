@@ -731,7 +731,7 @@ const MainGame = () => {
             Toast.show({
                 type: 'error',
                 text1: 'Whoops!',
-                text2: 'You answered incorrectly. The bird flew away!',
+                text2: 'Wrong answer. The bird flew away!',
                 position: 'top'
             });
             setTimeout(advanceBird, 900);

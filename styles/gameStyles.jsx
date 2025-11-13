@@ -82,6 +82,7 @@ export const styles = StyleSheet.create({
     modalTop: { flexDirection: 'row', marginBottom: 16, gap: 16, },
     modalImage: { width: 100, height: 100, borderRadius: 8, },
     modalTitle: { fontSize: 24, color: colours.offWhite, marginTop: 20, marginBottom: 4, fontFamily: 'FuzzyBubbles_700Bold' },
+    modalSubtitle: { fontSize: 16, color: colours.lightGreen, marginBottom: 12, fontFamily: 'FuzzyBubbles_400Regular' },
     modalDetails: { marginTop: 8, },
     detailRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 8, },
     detailLabel: { fontSize: 16, color: colours.lightGreen, marginBottom: 12, fontFamily: 'FuzzyBubbles_700Bold', width: 120, flexShrink: 0 },

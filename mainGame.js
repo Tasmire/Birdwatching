@@ -214,6 +214,7 @@ const MainGame = () => {
     const [token, setToken] = useState(null);
     const [selectedAnswer, setSelectedAnswer] = useState(null);
     const [isAnsweredCorrectly, setIsAnsweredCorrectly] = useState(null);
+    const [isCapturing, setIsCapturing] = useState(false);
 
     const viewRef = useRef(null);
 
@@ -600,6 +601,38 @@ const MainGame = () => {
     };
 
     /*
+    Photo taking functionality
+    */
+    
+    const takePhoto = async () => {
+        // guard: ensure we have a native view to capture
+        if (!viewRef?.current || !userId || !currentBird) {
+            Toast.show({ type: 'error', text1: 'Cannot take photo', text2: 'Missing context', position: 'top' });
+            return;
+        }
+
+        try {
+            // Capture first (do NOT show the overlay while capturing)
+            const uri = await takeScreenshot(viewRef.current, userId, currentBird /* cropRect optional, now handled inside */);
+            // show short flash/overlay after capture to indicate success
+            setIsCapturing(true);
+
+            if (uri) {
+                DeviceEventEmitter.emit('photoAdded', { animalId: String(currentBird.AnimalId) });
+                Toast.show({ type: 'success', text1: 'Photo saved', text2: 'Added to your logbook gallery', position: 'top' });
+            } else {
+                Toast.show({ type: 'error', text1: 'Photo failed', text2: 'Unable to capture', position: 'top' });
+            }
+        } catch (err) {
+            console.error('takePhoto error', err);
+            Toast.show({ type: 'error', text1: 'Photo failed', text2: err?.message ?? 'Unknown', position: 'top' });
+        } finally {
+            // keep overlay visible briefly then hide
+            setTimeout(() => setIsCapturing(false), 400);
+        }
+    };
+
+    /*
     Answer functionality
     */
 
@@ -691,98 +724,135 @@ const MainGame = () => {
     }, [birds]);
 
     return (
-        <View style={styles.containerNoPadding} ref={viewRef}>
-
+        <View style={styles.containerNoPadding}>
             {currentEnvironment && (
-                <View style={{ width: windowWidth, height: windowHeight, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' }}>
-                    <GestureDetector gesture={gesture}>
-                        <Animated.View style={[{ width: bgDisplayW, height: bgDisplayH }, animatedStyle]}>
-                            <ImageBackground
-                                source={currentEnvironment.background}
-                                style={{ width: bgDisplayW, height: bgDisplayH }}
-                                resizeMode="cover"
-                            >
-                                {/* render bird(s) positioned on the background */}
-                                {currentBird && (currentBird.spawnLocations || []).map((sp, si) => {
-                                    const birdSize = birdSizes[currentBird.AnimalId] || { width: defaultBirdWidth, height: defaultBirdHeight };
-                                    const spawnScale = (sp && sp.spawnScale) || 1;
-                                    const scaledWidth = birdSize.width * spawnScale;
-                                    const scaledHeight = birdSize.height * spawnScale;
-                                    const leftPx = ((sp && sp.spawnX != null ? sp.spawnX : 0.5) * bgDisplayW) - scaledWidth / 2;
-                                    const topPx = ((sp && sp.spawnY != null ? sp.spawnY : 0.5) * bgDisplayH) - scaledHeight;
+                <View
+                    // capture target: attach native ref here and prevent RN from collapsing it
+                    ref={viewRef}
+                    collapsable={false}
+                    style={{ width: windowWidth, height: windowHeight, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' }}
+                >
+                     <GestureDetector gesture={gesture}>
+                         <Animated.View style={[{ width: bgDisplayW, height: bgDisplayH }, animatedStyle]}>
+                             <ImageBackground
+                                 source={currentEnvironment.background}
+                                 style={{ width: bgDisplayW, height: bgDisplayH }}
+                                 resizeMode="cover"
+                             >
+                                 {/* render bird(s) positioned on the background */}
+                                 {currentBird && (currentBird.spawnLocations || []).map((sp, si) => {
+                                     const birdSize = birdSizes[currentBird.AnimalId] || { width: defaultBirdWidth, height: defaultBirdHeight };
+                                     const spawnScale = (sp && sp.spawnScale) || 1;
+                                     const scaledWidth = birdSize.width * spawnScale;
+                                     const scaledHeight = birdSize.height * spawnScale;
+                                     const leftPx = ((sp && sp.spawnX != null ? sp.spawnX : 0.5) * bgDisplayW) - scaledWidth / 2;
+                                     const topPx = ((sp && sp.spawnY != null ? sp.spawnY : 0.5) * bgDisplayH) - scaledHeight;
 
-                                    return (
-                                        <TouchableOpacity
-                                            key={si}
-                                            onPress={handleBirdTap}
-                                            style={[
-                                                styles.birdAbsolute,
-                                                {
-                                                    position: 'absolute',
-                                                    width: scaledWidth,
-                                                    height: scaledHeight,
-                                                    left: leftPx,
-                                                    top: topPx,
-                                                },
-                                            ]}
-                                        >
-                                            <ImageBackground
-                                                source={currentBird.ImageUrl || undefined}
-                                                style={{ width: '100%', height: '100%' }}
-                                            >
-                                                <Text>{currentBird.Name}</Text>
-                                            </ImageBackground>
-                                        </TouchableOpacity>
-                                    );
-                                })}
-                            </ImageBackground>
-                        </Animated.View>
-                    </GestureDetector>
-                </View>
-            )}
-            <View style={styles.overlayContent} pointerEvents="box-none">
-                <View style={styles.environmentButtons}>
-                    {environments.map((env) => (
-                        <TouchableOpacity
-                            key={env.id}
-                            style={[
-                                styles.environmentButton,
-                                selectedEnvironment === env.id && styles.selectedEnvironmentButton,
-                            ]}
-                            onPress={() => handleEnvironmentChange(env.id)}
-                        >
-                            <FontAwesomeIcon icon={['fas', env.icon]} color={colours.lightGreen} size={20} />
-                        </TouchableOpacity>
-                    ))}
-                </View>
+                                     return (
+                                         <TouchableOpacity
+                                             key={si}
+                                             onPress={handleBirdTap}
+                                             style={[
+                                                 styles.birdAbsolute,
+                                                 {
+                                                     position: 'absolute',
+                                                     width: scaledWidth,
+                                                     height: scaledHeight,
+                                                     left: leftPx,
+                                                     top: topPx,
+                                                 },
+                                             ]}
+                                         >
+                                             <ImageBackground
+                                                 source={currentBird.ImageUrl || undefined}
+                                                 style={{ width: '100%', height: '100%' }}
+                                             >
+                                                 <Text>{currentBird.Name}</Text>
+                                             </ImageBackground>
+                                         </TouchableOpacity>
+                                     );
+                                 })}
+                             </ImageBackground>
+                         </Animated.View>
+                     </GestureDetector>
+                 </View>
+             )}
+ 
+         {/* camera overlay (flash + frame) */}
+         {isCapturing && (
+             <View style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, zIndex: 50, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.25)' }}>
+                 <View style={{ width: Math.min(windowWidth, windowHeight) - 40, height: Math.min(windowWidth, windowHeight) - 40, borderWidth: 2, borderColor: colours.offWhite, borderRadius: 8 }} />
+                 <View style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, backgroundColor: 'rgba(255,255,255,0.08)' }} />
+             </View>
+         )}
+ 
+         <View style={styles.overlayContent} pointerEvents="box-none">
+             <View style={styles.environmentButtons}>
+                 {environments.map((env) => (
+                     <TouchableOpacity
+                         key={env.id}
+                         style={[
+                             styles.environmentButton,
+                             selectedEnvironment === env.id && styles.selectedEnvironmentButton,
+                         ]}
+                         onPress={() => handleEnvironmentChange(env.id)}
+                     >
+                         <FontAwesomeIcon icon={['fas', env.icon]} color={colours.lightGreen} size={20} />
+                     </TouchableOpacity>
+                 ))}
+             </View>
+ 
+             {questions.length > 0 && (
+                 <View style={styles.questionAnswerContainer}>
+                     <View style={styles.questionContainer}>
+                         <Text style={styles.questionText}>{questions[0].question}</Text>
+                     </View>
+                     <View style={styles.answerContainer}>
+                         {questions[0].answerOptions.map((option, idx) => (
+                             <TouchableOpacity
+                                 key={idx}
+                                 style={[
+                                     styles.answerButton,
+                                     selectedAnswer === option && styles.selectedAnswerButton,
+                                     isAnsweredCorrectly === true && selectedAnswer === option && styles.correctAnswerButton,
+                                     isAnsweredCorrectly === false && selectedAnswer === option && styles.incorrectAnswerButton
+                                 ]}
+                                 onPress={() => handleAnswerSelection(option)}
+                                 disabled={isAnsweredCorrectly !== null}
+                             >
+                                 <Text style={styles.answerButtonText}>{option}</Text>
+                             </TouchableOpacity>
+                         ))}
+                     </View>
+                 </View>
+             )}
+         </View>
 
-                {questions.length > 0 && (
-                    <View style={styles.questionAnswerContainer}>
-                        <View style={styles.questionContainer}>
-                            <Text style={styles.questionText}>{questions[0].question}</Text>
-                        </View>
-                        <View style={styles.answerContainer}>
-                            {questions[0].answerOptions.map((option, idx) => (
-                                <TouchableOpacity
-                                    key={idx}
-                                    style={[
-                                        styles.answerButton,
-                                        selectedAnswer === option && styles.selectedAnswerButton,
-                                        isAnsweredCorrectly === true && selectedAnswer === option && styles.correctAnswerButton,
-                                        isAnsweredCorrectly === false && selectedAnswer === option && styles.incorrectAnswerButton
-                                    ]}
-                                    onPress={() => handleAnswerSelection(option)}
-                                    disabled={isAnsweredCorrectly !== null}
-                                >
-                                    <Text style={styles.answerButtonText}>{option}</Text>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-                    </View>
-                )}
-            </View>
-        </View>
+        {/* Floating camera button — bottom-right */}
+        <TouchableOpacity
+            onPress={takePhoto}
+            accessibilityLabel="Take photo"
+            style={{
+                position: 'absolute',
+                bottom: 24,
+                right: 16,
+                zIndex: 80,
+                width: 56,
+                height: 56,
+                borderRadius: 28,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: colours.lightGreen,
+                shadowColor: '#000',
+                shadowOpacity: 0.2,
+                shadowRadius: 4,
+                elevation: 6,
+            }}
+        >
+            <FontAwesomeIcon icon={['fas', 'camera']} color="#0b2a12" size={22} />
+        </TouchableOpacity>
+    </View>
     );
-};
-
-export default MainGame;
+ };
+ 
+ export default MainGame;

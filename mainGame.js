@@ -458,7 +458,8 @@ const MainGame = () => {
         const env = environments.find((env) => env.id === environmentId);
         if (env?.background) setBgSizesFromSource(env.background);
         setSelectedEnvironment(environmentId);
-        fetchBirds(environmentId, token);
+        // pass current spawnData as override so fetchBirds uses the freshest spawn map
+        fetchBirds(environmentId, token, spawnData);
     };
 
     useEffect(() => {
@@ -467,9 +468,9 @@ const MainGame = () => {
 
     useEffect(() => {
         if (selectedEnvironment) {
-            fetchBirds(selectedEnvironment, token);
+            fetchBirds(selectedEnvironment, token, spawnData);
         }
-    }, [selectedEnvironment, token]);
+    }, [selectedEnvironment, token, spawnData]);
 
     // update intrinsic/display background size when environment/background changes
     useEffect(() => {
@@ -586,10 +587,10 @@ const MainGame = () => {
                     const _awardedRaw = await evaluateAchievements(userId, currentBird.AnimalId, token);
                     const _awarded = Array.isArray(_awardedRaw) ? _awardedRaw : (_awardedRaw ? [_awardedRaw] : []);
                     // filter to only entries that actually contain an achievement identifier
-                    const validAwards = (_awarded || []).filter(ua => ua && (ua.achievementId ?? ua.AchievementId ?? ua.Achievement ?? ua.id ?? ua.Id));
+                    const validAwards = (_awarded || []).filter(ua => ua && (ua.achievementId ?? ua.AchievementId ?? ua.id ?? ua.Id));
                     if (validAwards.length > 0) {
                         validAwards.forEach(ua => {
-                            const aid = String(ua.achievementId ?? ua.AchievementId ?? ua.Achievement ?? ua.id ?? ua.Id);
+                            const aid = String(ua.achievementId ?? ua.AchievementId ?? ua.id ?? ua.Id);
                             const def = achievementsMap[String(aid)] ?? achievementsMap[String(aid).toLowerCase?.()] ?? null;
                             Toast.show({
                                 type: 'success',
@@ -609,7 +610,7 @@ const MainGame = () => {
                     DeviceEventEmitter.emit('userSpotted', { animalId: String(currentBird.AnimalId) });
                     const _awardedRaw2 = await evaluateAchievements(userId, currentBird.AnimalId, token);
                     const _awarded2 = Array.isArray(_awardedRaw2) ? _awardedRaw2 : (_awardedRaw2 ? [_awardedRaw2] : []);
-                    const validAwards2 = (_awarded2 || []).filter(ua => ua && (ua.achievementId ?? ua.AchievementId ?? ua.Achievement ?? ua.id ?? ua.Id));
+                    const validAwards2 = (_awarded2 || []).filter(ua => ua && (ua.achievementId ?? ua.AchievementId ?? ua.id ?? ua.Id));
                     if (validAwards2.length > 0) {
                         validAwards2.forEach(a => Toast.show({ type: 'success', text1: 'Achievement unlocked!', text2: `Check your profile to view it.`, position: 'top' }));
                     }
@@ -747,12 +748,18 @@ const MainGame = () => {
         setQuestions([]);
         setSelectedAnswer(null);
         setIsAnsweredCorrectly(null);
-        setCurrentBirdIndex((i) => {
+        setCurrentBirdIndex((prevIndex) => {
             try {
                 const len = Array.isArray(birds) ? birds.length : 0;
                 if (len === 0) return 0;
-                const next = (typeof i === 'number' ? i : 0) + 1;
-                return next >= len ? 0 : next;
+                if (len === 1) return 0;
+                // choose a random index, avoid immediate repeat when possible
+                let next;
+                const current = (typeof prevIndex === 'number') ? prevIndex : 0;
+                do {
+                    next = Math.floor(Math.random() * len);
+                } while (next === current);
+                return next;
             } catch (e) {
                 return 0;
             }

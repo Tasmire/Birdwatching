@@ -25,6 +25,8 @@ import { FuzzyBubbles_400Regular, FuzzyBubbles_700Bold } from '@expo-google-font
 import PropTypes from 'prop-types';
 import Toast, { BaseToast, ErrorToast } from 'react-native-toast-message';
 
+
+
 library.add(fas, far, fab);
 
 const Tab = createBottomTabNavigator();
@@ -123,6 +125,13 @@ const App = () => {
     FuzzyBubbles_400Regular,
     FuzzyBubbles_700Bold,
   });
+
+  // const handleLogout = async () => {
+  //   try {
+  //     await AsyncStorage.multiRemove(['userData', 'token', 'userId', 'refreshToken']);
+  //   } catch (error) { }
+  //   setIsLoggedIn(false);
+  // }
 
   useEffect(() => {
     const checkLoginStatus = async () => {

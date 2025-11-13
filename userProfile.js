@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext, useRef, useCallback } from "react";
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, ScrollView, Text, View, ImageBackground, TouchableOpacity, Alert } from 'react-native';
-import { useNavigation } from "@react-navigation/native";
+import { StyleSheet, ScrollView, Text, View, ImageBackground, TouchableOpacity, Alert, DeviceEventEmitter } from 'react-native';
+import { useNavigation, useIsFocused } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { styles } from "./styles/gameStyles";
 import { colours } from "./styles/colourScheme";
@@ -18,6 +18,7 @@ const UserProfile = ({ onLogout }) => {
     const [totalUsers, setTotalUsers] = useState(0);
     const [token, setToken] = useState(null);
     const navigation = useNavigation();
+    const isFocused = useIsFocused();
 
     const fetchUserData = async () => {
         try {
@@ -95,6 +96,19 @@ const UserProfile = ({ onLogout }) => {
 
     useEffect(() => {
         fetchUserData();
+    }, []);
+
+    // refresh when the screen becomes focused (and on initial mount)
+    useEffect(() => {
+        if (isFocused) fetchUserData();
+    }, [isFocused]);
+
+    // also refresh immediately if another part of the app emits an achievements update
+    useEffect(() => {
+        const sub = DeviceEventEmitter.addListener('achievementsAwarded', () => {
+            fetchUserData();
+        });
+        return () => sub.remove();
     }, []);
 
     // Temporary debug helper: re-evaluate achievements for this user.

@@ -12,6 +12,7 @@ import { RandomAnswerOptions } from "./utilities/RandomAnswerOptions";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { DeviceEventEmitter } from 'react-native';
 import Toast from 'react-native-toast-message';
+import { showToast, showSuccess, showError } from './operations/ToastManager';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { fas } from '@fortawesome/free-solid-svg-icons';
@@ -592,13 +593,7 @@ const MainGame = () => {
                         validAwards.forEach(ua => {
                             const aid = String(ua.achievementId ?? ua.AchievementId ?? ua.id ?? ua.Id);
                             const def = achievementsMap[String(aid)] ?? achievementsMap[String(aid).toLowerCase?.()] ?? null;
-                            Toast.show({
-                                type: 'success',
-                                text1: def?.title ?? 'Achievement unlocked!',
-                                text2: def?.description ?? 'Check your profile to view it.',
-                                position: 'top',
-                                visibilityTime: 4000
-                            });
+                            showSuccess(def?.title ?? 'Achievement unlocked!', def?.description ?? 'Check your profile to view it.', { position: 'top', visibilityTime: 4000 });
                         });
                     }
                 } else {
@@ -612,7 +607,7 @@ const MainGame = () => {
                     const _awarded2 = Array.isArray(_awardedRaw2) ? _awardedRaw2 : (_awardedRaw2 ? [_awardedRaw2] : []);
                     const validAwards2 = (_awarded2 || []).filter(ua => ua && (ua.achievementId ?? ua.AchievementId ?? ua.id ?? ua.Id));
                     if (validAwards2.length > 0) {
-                        validAwards2.forEach(a => Toast.show({ type: 'success', text1: 'Achievement unlocked!', text2: `Check your profile to view it.`, position: 'top' }));
+                        validAwards2.forEach(a => showSuccess('Achievement unlocked!', 'Check your profile to view it.', { position: 'top' }));
                     }
                 }
             }
@@ -631,7 +626,7 @@ const MainGame = () => {
     const takePhoto = async () => {
         // guard: ensure we have a native view to capture
         if (!viewRef?.current || !userId || !currentBird) {
-            Toast.show({ type: 'error', text1: 'Cannot take photo', text2: 'Missing context', position: 'top' });
+            showError('Cannot take photo', 'Missing context', { position: 'top', visibilityTime: 2000 });
             return;
         }
 
@@ -644,13 +639,13 @@ const MainGame = () => {
 
             if (uri) {
                 DeviceEventEmitter.emit('photoAdded', { animalId: String(currentBird.AnimalId) });
-                Toast.show({ type: 'success', text1: 'Photo saved', text2: 'Added to your logbook gallery', position: 'top' });
+                showSuccess('Photo saved', 'Added to your logbook gallery', { position: 'top' });
             } else {
-                Toast.show({ type: 'error', text1: 'Photo failed', text2: 'Unable to capture', position: 'top' });
+                showError('Photo failed', 'Unable to capture', { position: 'top' });
             }
         } catch (err) {
             console.error('takePhoto error', err);
-            Toast.show({ type: 'error', text1: 'Photo failed', text2: err?.message ?? 'Unknown', position: 'top' });
+            showError('Photo failed', err?.message ?? 'Unknown', { position: 'top' });
         } finally {
             // keep overlay visible briefly then hide
             setTimeout(() => setIsCapturing(false), 400);
@@ -681,23 +676,23 @@ const MainGame = () => {
                         InfoType: normalizeInfoKey(q.infoType),
                         IsUnlocked: true,
                     };
-                    console.log('Posting unlock payload:', payload);
+                    // console.log('Posting unlock payload:', payload);
                     const res = await apiCallPost(`/api/UserAnimalInfoUnlockedAPI`, token, payload);
                     console.log('UserAnimalInfoUnlocked POST result:', res);
 
                     // DEBUG: show token + call evaluate and log full response / errors
-                    console.log('[DEBUG] token present for evaluate:', !!token, 'userId:', userId);
-                    console.log('[DEBUG] raw token:', token);
+                    // console.log('[DEBUG] token present for evaluate:', !!token, 'userId:', userId);
+                    // console.log('[DEBUG] raw token:', token);
                     try {
                         const evalPayload = { UserId: userId, AnimalId: currentBird.AnimalId, EventType: 'UnlockedInfo' };
-                        console.log('[DEBUG] calling AchievementEvaluation/evaluate with', evalPayload);
+                        // console.log('[DEBUG] calling AchievementEvaluation/evaluate with', evalPayload);
                         const evalRes = await apiCallPost(`/api/AchievementEvaluation/evaluate`, token, evalPayload);
-                        console.log('[DEBUG] evaluate response (raw):', evalRes);
+                        // console.log('[DEBUG] evaluate response (raw):', evalRes);
                         // handle awards
                         const _awardedRaw = evalRes ?? await evaluateAchievements(userId, currentBird.AnimalId, token);
-                        console.log('[DEBUG] _awardedRaw:', _awardedRaw);
+                        // console.log('[DEBUG] _awardedRaw:', _awardedRaw);
                         const _awarded = Array.isArray(_awardedRaw) ? _awardedRaw : (_awardedRaw ? [_awardedRaw] : []);
-                        console.log('[DEBUG] normalized awards array:', _awarded);
+                        // console.log('[DEBUG] normalized awards array:', _awarded);
                     } catch (evalErr) {
                         console.error('[DEBUG] evaluate POST error:', evalErr);
                     }
@@ -711,12 +706,7 @@ const MainGame = () => {
                     console.error("Error posting unlock:", err);
                 }
             }
-            Toast.show({
-                type: 'success',
-                text1: 'Congrats!',
-                text2: 'You answered correctly!',
-                position: 'top'
-            });
+            showSuccess('Congrats!', 'You answered correctly!', { position: 'top', visibilityTime: 2000 });
             // advance after a short delay so toast/animation can show
             setTimeout(advanceBird, 900);
             
@@ -728,12 +718,7 @@ const MainGame = () => {
         //         { text: 'Continue', onPress: () => { setSelectedAnswer(null); setIsAnsweredCorrectly(null); } }
         //     ]);
         } else {
-            Toast.show({
-                type: 'error',
-                text1: 'Whoops!',
-                text2: 'Wrong answer. The bird flew away!',
-                position: 'top'
-            });
+            showError('Whoops!', 'Wrong answer. The bird flew away!', { position: 'top', visibilityTime: 2000 });
             setTimeout(advanceBird, 900);
         }
     };

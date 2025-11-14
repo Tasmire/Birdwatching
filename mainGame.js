@@ -586,6 +586,7 @@ const MainGame = () => {
                     DeviceEventEmitter.emit('userSpotted', { animalId: String(currentBird.AnimalId) });
                     // checks if any achievements unlocked
                     const _awardedRaw = await evaluateAchievements(userId, currentBird.AnimalId, token);
+                    // console.log('[DEBUG] evaluate token present?:', !!token, 'tokenPreview:', token ? token.slice?.(0, 8) : null);
                     const _awarded = Array.isArray(_awardedRaw) ? _awardedRaw : (_awardedRaw ? [_awardedRaw] : []);
                     // filter to only entries that actually contain an achievement identifier
                     const validAwards = (_awarded || []).filter(ua => ua && (ua.achievementId ?? ua.AchievementId ?? ua.id ?? ua.Id));

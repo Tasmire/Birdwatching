@@ -1,4 +1,6 @@
 import { apiUrl } from "./ApiConfig";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { DeviceEventEmitter } from "react-native";
 
 const apiCallGet = async (url, token) => {
     try {
@@ -27,6 +29,9 @@ const apiCallPost = async (url, token, body) => {
         };
         if (token) headers.Authorization = `Bearer ${token}`;
 
+        // DEBUG: log whether Authorization header will be sent (do not log full token in production)
+        // console.log('API POST sending Authorization?', !!headers.Authorization, 'url=', url);
+
         const bodyText = typeof body === "string" ? body : JSON.stringify(body);
 
         const response = await fetch(apiUrl(url), {
@@ -37,7 +42,14 @@ const apiCallPost = async (url, token, body) => {
         });
 
         // DEBUG: log status and content-type
-        console.log('API POST response status', response.status, 'headers.content-type=', response.headers.get('content-type'));
+        // console.log('API POST response status', response.status, 'headers.content-type=', response.headers.get('content-type'));
+
+        // If unauthorized, proactively clear local auth and notify app to navigate to login
+        if (response.status === 401) {
+            console.warn('API returned 401; clearing local auth and emitting forceLogout');
+            try { await AsyncStorage.multiRemove(['userData','token','userId','refreshToken']); } catch (e) { /* ignore */ }
+            try { DeviceEventEmitter.emit('forceLogout'); } catch(e) { /* ignore */ }
+        }
 
         const responseText = await response.text().catch(() => "<no body>");
         let parsedResponse;

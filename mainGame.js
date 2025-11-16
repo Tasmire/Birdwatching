@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useContext, useRef, useCallback } from "react";
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View, ImageBackground, TouchableOpacity, Button, ScrollView, Dimensions, Image, Alert } from 'react-native';
 import { styles } from "./styles/gameStyles";
@@ -49,6 +51,10 @@ const MainGame = () => {
     const scale = useSharedValue(1);
     const saved = { x: 0, y: 0, s: 1 };
 
+    const insets = useSafeAreaInsets();
+    const tabBarHeight = useBottomTabBarHeight ? useBottomTabBarHeight() : 0;
+    const navBarOffset = (insets?.bottom || 0) + (  tabBarHeight || 0);
+
     // intrinsic image size (pixels) and displayed size (pixels)
     const bgIntrinsicWidth = useSharedValue(windowWidth * 7);
     const bgIntrinsicHeight = useSharedValue(windowHeight);
@@ -58,6 +64,8 @@ const MainGame = () => {
     // use plain defaults for initial React state
     const [bgDisplayW, setBgDisplayW] = useState(windowWidth * 7);
     const [bgDisplayH, setBgDisplayH] = useState(windowHeight);
+    const [availableWidth, setAvailableWidth] = useState(windowWidth);
+    const [availableHeight, setAvailableHeight] = useState(windowHeight);
 
     // preserving aspect ratio: displayScale = windowHeight / intrinsicHeight
     const setBgSizesFromSource = (imgSource) => {
@@ -69,12 +77,20 @@ const MainGame = () => {
                 if (resolved?.width && resolved?.height) {
                     bgIntrinsicWidth.value = resolved.width;
                     bgIntrinsicHeight.value = resolved.height;
-                    const scaleToFitHeight = windowHeight / resolved.height;
-                    bgDisplayWidth.value = Math.round(resolved.width * scaleToFitHeight);
-                    bgDisplayHeight.value = Math.round(windowHeight);
-                    // update React state mirror
-                    setBgDisplayW(Math.round(resolved.width * scaleToFitHeight));
-                    setBgDisplayH(Math.round(windowHeight));
+                    // const scaleToFitHeight = windowHeight / resolved.height;
+                    // bgDisplayWidth.value = Math.round(resolved.width * scaleToFitHeight);
+                    // bgDisplayHeight.value = Math.round(windowHeight);
+                    // // update React state mirror
+                    // setBgDisplayW(Math.round(resolved.width * scaleToFitHeight));
+                    // setBgDisplayH(Math.round(windowHeight));
+                    const targetH = (availableHeight && availableHeight > 0) ? availableHeight : windowHeight;
+                    const scaleToFitHeight = targetH / resolved.height;
+                    const displayW = Math.round(resolved.width * scaleToFitHeight);
+                    const displayH = Math.round(targetH);
+                    bgDisplayWidth.value = displayW;
+                    bgDisplayHeight.value = displayH;
+                    setBgDisplayW(displayW);
+                    setBgDisplayH(displayH);
                     return;
                 }
             }
@@ -85,11 +101,14 @@ const MainGame = () => {
                     (w, h) => {
                         bgIntrinsicWidth.value = w;
                         bgIntrinsicHeight.value = h;
-                        const scaleToFitHeight = windowHeight / h;
-                        bgDisplayWidth.value = Math.round(w * scaleToFitHeight);
-                        bgDisplayHeight.value = Math.round(windowHeight);
-                        setBgDisplayW(Math.round(w * scaleToFitHeight));
-                        setBgDisplayH(Math.round(windowHeight));
+                        const targetH = (availableHeight && availableHeight > 0) ? availableHeight : windowHeight;
+                        const scaleToFitHeight = targetH / h;
+                        const displayW = Math.round(w * scaleToFitHeight);
+                        const displayH = Math.round(targetH);
+                        bgDisplayWidth.value = displayW;
+                        bgDisplayHeight.value = displayH;
+                        setBgDisplayW(displayW);
+                        setBgDisplayH(displayH);
                     },
                     () => {
                         // fallback keep previous values
@@ -114,6 +133,7 @@ const MainGame = () => {
 
     const defaultBirdHeight = 80;
     const defaultBirdWidth = 80;
+    const GLOBAL_BIRD_SCALE = 0.4;
     const [birdSizes, setBirdSizes] = useState({});
     const setBirdSizeForId = (id, size) => {
         setBirdSizes((prev) => ({ ...prev, [id]: size }));
@@ -423,6 +443,8 @@ const MainGame = () => {
                     ? normalized
                     : [{ spawnX: 0.5, spawnY: 0.5, spawnScale: 1 }]; // default center spawn
                 
+                const chosenSpawn = finalSpawns[Math.floor(Math.random() * finalSpawns.length)];
+                
                 if (!normalized || normalized.length === 0) {
                     console.log(`No valid spawn locations for bird ${birdName} (${birdId}) in environment ${environmentId}; using default center spawn.`);
                 }
@@ -433,7 +455,7 @@ const MainGame = () => {
                     ImageUrl: birdImage,
                     environmentId: birdEnvId,
                     //spawnLocations: (rawSpawns || []).map(normalizeSpawn).filter(Boolean),
-                    spawnLocations: finalSpawns,
+                    spawnLocations: [chosenSpawn],
                 };
             });
 
@@ -753,6 +775,20 @@ const MainGame = () => {
                 <View
                     ref={viewRef}
                     collapsable={false}
+                    onLayout={(e) => {
+                        const { width, height } = e.nativeEvent.layout;
+                        setAvailableWidth(width);
+                        setAvailableHeight(height);
+                        bgDisplayWidth.value = width;
+                        bgDisplayHeight.value = height;
+                        setBgDisplayW(width);
+                        setBgDisplayH(height);
+
+                        const env = environments.find((env) => env.id === selectedEnvironment);
+                        if (env?.background) {
+                            setBgSizesFromSource(env.background);
+                        }
+                    }}
                     style={{ width: windowWidth, height: windowHeight, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' }}
                 >
                      <GestureDetector gesture={gesture}>
@@ -767,12 +803,59 @@ const MainGame = () => {
                              >
                                  {/* render bird(s) positioned on the background */}
                                  {currentBird && (currentBird.spawnLocations || []).map((sp, si) => {
-                                     const birdSize = birdSizes[currentBird.AnimalId] || { width: defaultBirdWidth, height: defaultBirdHeight };
-                                     const spawnScale = (sp && sp.spawnScale) || 1;
-                                     const scaledWidth = birdSize.width * spawnScale;
-                                     const scaledHeight = birdSize.height * spawnScale;
-                                     const leftPx = ((sp && sp.spawnX != null ? sp.spawnX : 0.5) * bgDisplayW) - scaledWidth / 2;
-                                     const topPx = ((sp && sp.spawnY != null ? sp.spawnY : 0.5) * bgDisplayH) - scaledHeight;
+                                    const birdSize = birdSizes[currentBird.AnimalId] || { width: defaultBirdWidth, height: defaultBirdHeight };
+                                     const spawnScale = (sp && sp.spawnScale) ?? 1;
+                                     const intrinsicBirdW = birdSize.width || defaultBirdWidth;
+                                     const intrinsicBirdH = birdSize.height || defaultBirdHeight;
+                                    //  const scaledWidth = birdSize.width * spawnScale;
+                                    //  const scaledHeight = birdSize.height * spawnScale;
+                                    //  const leftPx = ((sp && sp.spawnX != null ? sp.spawnX : 0.5) * bgDisplayW) - scaledWidth / 2;
+                                     //  const topPx = ((sp && sp.spawnY != null ? sp.spawnY : 0.5) * bgDisplayH) - scaledHeight;
+
+                                     const aspect = intrinsicBirdW / intrinsicBirdH;
+                                     const candidateMultH = intrinsicBirdH * spawnScale;
+                                     const candidateMultW = intrinsicBirdW * spawnScale;
+                                     const candidateBgH = spawnScale * bgDisplayH;
+                                     const candidateBgW = candidateBgH * aspect;
+
+                                     let useMultiplier = false;
+                                     if (birdSize.width && birdSize.height) {
+                                         const reasonableMin = 40;
+                                         const reasonableMax = bgDisplayH * 0.8;
+                                         if (candidateMultH >= reasonableMin && candidateMultH <= reasonableMax) {
+                                             useMultiplier = true;
+                                         } else if (candidateBgH > reasonableMax) {
+                                             useMultiplier = false;
+                                         } else {
+                                             useMultiplier = candidateMultH <= candidateBgH;
+                                         }
+                                     } else {
+                                         useMultiplier = spawnScale > 1;
+                                     }
+                                     
+                                     let scaledHeight = useMultiplier ? candidateMultH : candidateBgH;
+                                     let scaledWidth = useMultiplier ? candidateMultW : candidateBgW;
+
+                                     const envScale = (currentEnvironment && currentEnvironment.birdScale) ? currentEnvironment.birdScale : 1;
+                                     const globalScale = (typeof GLOBAL_BIRD_SCALE === 'number' ? GLOBAL_BIRD_SCALE : 1) * envScale;
+                                     scaledHeight = Math.max(1, scaledHeight * globalScale);
+                                     scaledWidth = Math.max(1, scaledWidth * globalScale);
+                                     
+                                     const maxAllowedH = Math.max(32, bgDisplayH * 0.6);
+                                     if (scaledHeight > maxAllowedH) {
+                                            const shrink = maxAllowedH / scaledHeight;
+                                            scaledHeight = maxAllowedH;
+                                            scaledWidth = Math.max(1, scaledWidth * shrink);
+                                     }
+                                     if (scaledWidth < 8) {
+                                        const grow = 8 / Math.max(1, scaledWidth);
+                                        scaledWidth = 8;
+                                        scaledHeight = Math.max(1, scaledHeight * grow);
+                                     }
+
+                                     // manually adjusted to match expected spawns
+                                     const leftPx = ((sp?.spawnX ?? 0.5) * bgDisplayW) - (scaledWidth / 2) + 50;
+                                     const topPx = ((sp?.spawnY ?? 0.5) * bgDisplayH) - scaledHeight + navBarOffset - 20;
 
                                      return (
                                          <TouchableOpacity

@@ -332,9 +332,9 @@ const MainGame = () => {
             } catch (e) { console.warn('Unable to load achievement definitions', e); }
 
             const imageMapping = {
-                "bgUrban.jpg": require("./assets/bgUrban.jpg"),
-                "bgForest.jpg": require("./assets/bgForest.jpg"),
-                "bgCoastal.jpg": require("./assets/bgCoastal.jpg"),
+                "bgUrban.jpg": require("./assets/bgUrban.png"),
+                "bgForest.jpg": require("./assets/bgForest.png"),
+                "bgCoastal.jpg": require("./assets/bgCoastal.png"),
             };
 
             const formattedEnvironments = (environmentData || []).map((env) => ({

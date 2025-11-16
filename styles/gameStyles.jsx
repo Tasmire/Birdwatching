@@ -80,7 +80,7 @@ export const styles = StyleSheet.create({
     modalOverlay: { flex: 1, backgroundColor: colours.darkOverlay, justifyContent: 'center', alignItems: 'center', padding: 16, },
     modalContent: { backgroundColor: colours.dullGreen, borderRadius: 10, padding: 16, width: '100%', maxWidth: 400, },
     modalTop: { flexDirection: 'row', marginBottom: 16, gap: 16, },
-    modalImage: { width: 100, height: 100, borderRadius: 8, },
+    modalImage: { width: 100, height: 100, borderRadius: 8, resizeMode: 'contain', },
     modalTitle: { fontSize: 24, color: colours.offWhite, marginTop: 20, marginBottom: 4, fontFamily: 'FuzzyBubbles_700Bold' },
     modalSubtitle: { fontSize: 16, color: colours.lightGreen, marginBottom: 12, fontFamily: 'FuzzyBubbles_400Regular' },
     modalDetails: { marginTop: 8, },

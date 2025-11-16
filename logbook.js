@@ -328,7 +328,7 @@ const Logbook = () => {
                                     disabled={!seen}
                                     activeOpacity={0.8}
                                 >
-                                    <Image source={imageSrc} style={styles.logbookBirdImage} resizeMode="cover" />
+                                    <Image source={imageSrc} style={styles.logbookBirdImage} resizeMode="contain" />
                                     <Text style={styles.logbookBirdName}>{displayName}</Text>
                                 </TouchableOpacity>
                             );

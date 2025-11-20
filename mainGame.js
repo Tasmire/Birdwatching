@@ -853,9 +853,9 @@ const MainGame = () => {
                                         scaledHeight = Math.max(1, scaledHeight * grow);
                                      }
 
-                                     // manually adjusted to match expected spawns
+                                     // manually adjusted to match expected spawns (hopefully will be fixed/more efficient in the future)
                                      const leftPx = ((sp?.spawnX ?? 0.5) * bgDisplayW) - (scaledWidth / 2) + 50;
-                                     const topPx = ((sp?.spawnY ?? 0.5) * bgDisplayH) - scaledHeight + navBarOffset - 20;
+                                     const topPx = ((sp?.spawnY ?? 0.5) * bgDisplayH) - scaledHeight + navBarOffset - 40;
 
                                      return (
                                          <TouchableOpacity
